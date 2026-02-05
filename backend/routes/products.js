@@ -1,0 +1,172 @@
+const express = require('express');
+const router = express.Router();
+const Product = require('../models/Product');
+
+// @route   GET /api/products
+// @desc    Get all products
+// @access  Public
+router.get('/', async (req, res) => {
+  try {
+    const { 
+      storeId, 
+      category, 
+      search, 
+      onSale, 
+      inStock,
+      page = 1, 
+      limit = 20 
+    } = req.query;
+
+    const filter = { isActive: true };
+    
+    if (storeId) filter.storeId = storeId;
+    if (category) filter.category = category;
+    if (onSale === 'true') filter['promotion.isOnSale'] = true;
+    if (inStock === 'true') filter.stockStatus = 'disponible';
+    if (search) {
+      filter.$text = { $search: search };
+    }
+
+    const products = await Product.find(filter)
+      .populate('storeId', 'name location')
+      .limit(limit * 1)
+      .skip((page - 1) * limit)
+      .sort({ createdAt: -1 });
+
+    const count = await Product.countDocuments(filter);
+
+    res.json({
+      success: true,
+      count: products.length,
+      total: count,
+      totalPages: Math.ceil(count / limit),
+      currentPage: page,
+      data: products
+    });
+  } catch (error) {
+    console.error('Get products error:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Server error' 
+    });
+  }
+});
+
+// @route   GET /api/products/:id
+// @desc    Get product by ID
+// @access  Public
+router.get('/:id', async (req, res) => {
+  try {
+    const product = await Product.findById(req.params.id)
+      .populate('storeId', 'name location acceptedPaymentMethods');
+
+    if (!product) {
+      return res.status(404).json({ 
+        success: false, 
+        message: 'Product not found' 
+      });
+    }
+
+    // Increment view count
+    product.views += 1;
+    await product.save();
+
+    res.json({
+      success: true,
+      data: product
+    });
+  } catch (error) {
+    console.error('Get product error:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Server error' 
+    });
+  }
+});
+
+// @route   POST /api/products
+// @desc    Create new product
+// @access  Private (Boutique)
+router.post('/', async (req, res) => {
+  try {
+    const product = new Product(req.body);
+    await product.save();
+
+    res.status(201).json({
+      success: true,
+      message: 'Product created successfully',
+      data: product
+    });
+  } catch (error) {
+    console.error('Create product error:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Server error' 
+    });
+  }
+});
+
+// @route   PUT /api/products/:id
+// @desc    Update product
+// @access  Private (Boutique)
+router.put('/:id', async (req, res) => {
+  try {
+    const product = await Product.findByIdAndUpdate(
+      req.params.id,
+      { ...req.body, updatedAt: Date.now() },
+      { new: true, runValidators: true }
+    );
+
+    if (!product) {
+      return res.status(404).json({ 
+        success: false, 
+        message: 'Product not found' 
+      });
+    }
+
+    res.json({
+      success: true,
+      message: 'Product updated successfully',
+      data: product
+    });
+  } catch (error) {
+    console.error('Update product error:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Server error' 
+    });
+  }
+});
+
+// @route   DELETE /api/products/:id
+// @desc    Delete product (soft delete)
+// @access  Private (Boutique or Admin)
+router.delete('/:id', async (req, res) => {
+  try {
+    const product = await Product.findByIdAndUpdate(
+      req.params.id,
+      { isActive: false, updatedAt: Date.now() },
+      { new: true }
+    );
+
+    if (!product) {
+      return res.status(404).json({ 
+        success: false, 
+        message: 'Product not found' 
+      });
+    }
+
+    res.json({
+      success: true,
+      message: 'Product deleted successfully'
+    });
+  } catch (error) {
+    console.error('Delete product error:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Server error' 
+    });
+  }
+});
+
+module.exports = router;
