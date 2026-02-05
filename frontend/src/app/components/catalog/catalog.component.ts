@@ -4,6 +4,7 @@ import { RouterModule } from '@angular/router';
 import { AuthService } from '../../services/auth.service';
 import { ProductService } from '../../services/product.service';
 import { StoreService } from '../../services/store.service';
+import { User } from '../../models/user.model';
 
 @Component({
   selector: 'app-catalog',
@@ -169,7 +170,7 @@ import { StoreService } from '../../services/store.service';
   styles: [``]
 })
 export class CatalogComponent implements OnInit {
-  currentUser: any;
+  currentUser: User | null = null;
   products: any[] = [];
   stores: any[] = [];
 
@@ -178,7 +179,7 @@ export class CatalogComponent implements OnInit {
     private productService: ProductService,
     private storeService: StoreService
   ) {
-    this.authService.currentUser$.subscribe(user => {
+    this.authService.currentUser$.subscribe((user: User | null) => {
       this.currentUser = user;
     });
   }
@@ -190,12 +191,12 @@ export class CatalogComponent implements OnInit {
 
   loadProducts(): void {
     this.productService.getProducts().subscribe({
-      next: (response) => {
+      next: (response: any) => {
         if (response.success) {
           this.products = response.data;
         }
       },
-      error: (error) => {
+      error: (error: any) => {
         console.error('Error loading products:', error);
       }
     });
@@ -203,12 +204,12 @@ export class CatalogComponent implements OnInit {
 
   loadStores(): void {
     this.storeService.getStores().subscribe({
-      next: (response) => {
+      next: (response: any) => {
         if (response.success) {
           this.stores = response.data;
         }
       },
-      error: (error) => {
+      error: (error: any) => {
         console.error('Error loading stores:', error);
       }
     });
