@@ -2,7 +2,8 @@ import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, RouterModule } from '@angular/router';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
-import { AuthService } from '../../services/auth.service';
+import { AuthService } from '../../../services/auth.service';
+import { AuthResponse } from '../../../models/user.model';
 
 @Component({
   selector: 'app-register',
@@ -128,13 +129,13 @@ export class RegisterComponent {
     this.errorMessage = '';
 
     this.authService.register(this.registerForm.value).subscribe({
-      next: (response) => {
+      next: (response: AuthResponse) => {
         this.isLoading = false;
         if (response.success) {
           this.router.navigate(['/catalog']);
         }
       },
-      error: (error) => {
+      error: (error: any) => {
         this.isLoading = false;
         this.errorMessage = error.error?.message || 'Erreur d\'inscription';
       }

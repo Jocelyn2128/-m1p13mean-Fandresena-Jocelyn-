@@ -2,7 +2,9 @@ import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, RouterModule } from '@angular/router';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
-import { AuthService } from '../../services/auth.service';
+import { HttpClientModule } from '@angular/common/http';
+import { AuthService } from '../../../services/auth.service';
+import { AuthResponse } from '../../../models/user.model';
 
 @Component({
   selector: 'app-login',
@@ -85,13 +87,13 @@ export class LoginComponent {
     this.errorMessage = '';
 
     this.authService.login(this.loginForm.value).subscribe({
-      next: (response) => {
+      next: (response: AuthResponse) => {
         this.isLoading = false;
         if (response.success) {
           this.redirectBasedOnRole(response.data.user.role);
         }
       },
-      error: (error) => {
+      error: (error: any) => {
         this.isLoading = false;
         this.errorMessage = error.error?.message || 'Erreur de connexion';
       }

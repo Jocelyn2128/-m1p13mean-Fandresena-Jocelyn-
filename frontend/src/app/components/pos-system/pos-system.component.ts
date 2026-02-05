@@ -2,6 +2,7 @@ import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { AuthService } from '../../services/auth.service';
+import { User } from '../../models/user.model';
 
 @Component({
   selector: 'app-pos-system',
@@ -125,10 +126,10 @@ import { AuthService } from '../../services/auth.service';
   styles: [``]
 })
 export class PosSystemComponent {
-  currentUser: any;
+  currentUser: User | null = null;
 
   constructor(private authService: AuthService) {
-    this.authService.currentUser$.subscribe(user => {
+    this.authService.currentUser$.subscribe((user: User | null) => {
       this.currentUser = user;
     });
   }
