@@ -6,15 +6,18 @@ import { AuthService } from '../../../services/auth.service';
 import { AuthResponse } from '../../../models/user.model';
 
 @Component({
-  selector: 'app-register',
+  selector: 'app-register-acheteur',
   standalone: true,
   imports: [CommonModule, ReactiveFormsModule, RouterModule],
   template: `
-    <div class="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
+    <div class="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-50 to-pink-100 p-4">
       <div class="bg-white rounded-2xl shadow-xl w-full max-w-md p-8">
         <div class="text-center mb-8">
-          <h1 class="text-3xl font-bold text-gray-900 mb-2">MallConnect</h1>
-          <p class="text-gray-600">Créer un nouveau compte</p>
+          <div class="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <i class="fas fa-shopping-bag text-2xl text-purple-600"></i>
+          </div>
+          <h1 class="text-2xl font-bold text-gray-900 mb-2">Inscription Acheteur</h1>
+          <p class="text-gray-600">Créer votre compte client</p>
         </div>
 
         <form [formGroup]="registerForm" (ngSubmit)="onSubmit()" class="space-y-4">
@@ -55,7 +58,7 @@ import { AuthResponse } from '../../../models/user.model';
               type="email" 
               formControlName="email"
               class="form-input"
-              placeholder="votre@email.com"
+              placeholder="vous@email.com"
             >
           </div>
 
@@ -69,14 +72,6 @@ import { AuthResponse } from '../../../models/user.model';
             >
           </div>
 
-          <div>
-            <label class="form-label">Type de compte</label>
-            <select formControlName="role" class="form-input">
-              <option value="ACHETEUR">Acheteur</option>
-              <option value="BOUTIQUE">Boutique / Commerçant</option>
-            </select>
-          </div>
-
           <div *ngIf="errorMessage" class="bg-red-50 text-red-600 p-3 rounded-lg text-sm">
             {{ errorMessage }}
           </div>
@@ -84,17 +79,16 @@ import { AuthResponse } from '../../../models/user.model';
           <button 
             type="submit" 
             [disabled]="registerForm.invalid || isLoading"
-            class="w-full btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
+            class="w-full bg-purple-600 hover:bg-purple-700 text-white font-medium py-2 px-4 rounded-lg transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            <span *ngIf="!isLoading">S'inscrire</span>
-            <span *ngIf="isLoading">Inscription...</span>
+            <span *ngIf="!isLoading">Créer mon compte</span>
+            <span *ngIf="isLoading">Création...</span>
           </button>
         </form>
 
         <div class="mt-6 text-center text-sm text-gray-600">
-          Déjà un compte? 
-          <a routerLink="/login" class="text-blue-600 hover:text-blue-700 font-medium">
-            Se connecter
+          <a routerLink="/register" class="text-blue-600 hover:text-blue-700">
+            <i class="fas fa-arrow-left mr-1"></i> Retour
           </a>
         </div>
       </div>
@@ -102,7 +96,7 @@ import { AuthResponse } from '../../../models/user.model';
   `,
   styles: [``]
 })
-export class RegisterComponent {
+export class RegisterAcheteurComponent {
   registerForm: FormGroup;
   isLoading = false;
   errorMessage = '';
@@ -117,8 +111,7 @@ export class RegisterComponent {
       lastName: ['', Validators.required],
       phone: ['', Validators.required],
       email: ['', [Validators.required, Validators.email]],
-      password: ['', [Validators.required, Validators.minLength(6)]],
-      role: ['ACHETEUR', Validators.required]
+      password: ['', [Validators.required, Validators.minLength(6)]]
     });
   }
 
@@ -128,7 +121,12 @@ export class RegisterComponent {
     this.isLoading = true;
     this.errorMessage = '';
 
-    this.authService.register(this.registerForm.value).subscribe({
+    const userData = {
+      ...this.registerForm.value,
+      role: 'ACHETEUR'
+    };
+
+    this.authService.register(userData).subscribe({
       next: (response: AuthResponse) => {
         this.isLoading = false;
         if (response.success) {
