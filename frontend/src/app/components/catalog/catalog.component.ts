@@ -1,6 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterModule } from '@angular/router';
+import { Router, RouterModule } from '@angular/router';
 import { AuthService } from '../../services/auth.service';
 import { ProductService } from '../../services/product.service';
 import { StoreService } from '../../services/store.service';
@@ -177,7 +177,8 @@ export class CatalogComponent implements OnInit {
   constructor(
     private authService: AuthService,
     private productService: ProductService,
-    private storeService: StoreService
+    private storeService: StoreService,
+    private router: Router
   ) {
     this.authService.currentUser$.subscribe((user: User | null) => {
       this.currentUser = user;
@@ -217,5 +218,6 @@ export class CatalogComponent implements OnInit {
 
   logout(): void {
     this.authService.logout();
+    this.router.navigate(['/login']);
   }
 }

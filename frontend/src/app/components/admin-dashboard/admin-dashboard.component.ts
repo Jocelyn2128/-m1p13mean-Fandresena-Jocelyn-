@@ -1,6 +1,6 @@
 import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterModule } from '@angular/router';
+import { Router, RouterModule } from '@angular/router';
 import { AuthService } from '../../services/auth.service';
 import { User } from '../../models/user.model';
 
@@ -18,23 +18,42 @@ import { User } from '../../models/user.model';
         </div>
         
         <nav class="mt-6">
-          <a class="sidebar-link active">
+          <a routerLink="/admin" routerLinkActive="active" class="sidebar-link">
             <i class="fas fa-home w-6"></i>
             <span>Tableau de bord</span>
           </a>
-          <a class="sidebar-link">
+          <a routerLink="/admin/stores" routerLinkActive="active" class="sidebar-link">
             <i class="fas fa-store w-6"></i>
             <span>Boutiques</span>
           </a>
-          <a class="sidebar-link">
+          <div class="sidebar-link cursor-pointer" (click)="toggleValidationMenu()">
+            <i class="fas fa-check-circle w-6"></i>
+            <span>Validation</span>
+            <i class="fas fa-chevron-down ml-auto text-sm" [class.rotate-180]="showValidationMenu"></i>
+          </div>
+          <div *ngIf="showValidationMenu" class="bg-gray-50 py-2">
+            <a routerLink="/admin/approvals" routerLinkActive="active" class="sidebar-link pl-12 text-sm">
+              <span>Boutiques</span>
+              <span *ngIf="pendingBoutiquesCount > 0" class="ml-auto bg-red-500 text-white text-xs rounded-full px-2 py-0.5">
+                {{ pendingBoutiquesCount }}
+              </span>
+            </a>
+            <a routerLink="/admin/approvals/users" routerLinkActive="active" class="sidebar-link pl-12 text-sm">
+              <span>Utilisateurs</span>
+              <span *ngIf="pendingUsersCount > 0" class="ml-auto bg-red-500 text-white text-xs rounded-full px-2 py-0.5">
+                {{ pendingUsersCount }}
+              </span>
+            </a>
+          </div>
+          <a routerLink="/admin/events" routerLinkActive="active" class="sidebar-link">
             <i class="fas fa-calendar w-6"></i>
             <span>Événements</span>
           </a>
-          <a class="sidebar-link">
+          <a routerLink="/admin/statistics" routerLinkActive="active" class="sidebar-link">
             <i class="fas fa-chart-bar w-6"></i>
             <span>Statistiques</span>
           </a>
-          <a class="sidebar-link">
+          <a routerLink="/admin/map" routerLinkActive="active" class="sidebar-link">
             <i class="fas fa-map w-6"></i>
             <span>Plan du centre</span>
           </a>
@@ -126,14 +145,32 @@ import { User } from '../../models/user.model';
 })
 export class AdminDashboardComponent {
   currentUser: User | null = null;
+  showValidationMenu = false;
+  pendingBoutiquesCount = 0;
+  pendingUsersCount = 0;
 
-  constructor(private authService: AuthService) {
+  constructor(
+    private authService: AuthService,
+    private router: Router
+  ) {
     this.authService.currentUser$.subscribe((user: User | null) => {
       this.currentUser = user;
     });
+    this.loadPendingCounts();
+  }
+
+  toggleValidationMenu(): void {
+    this.showValidationMenu = !this.showValidationMenu;
+  }
+
+  loadPendingCounts(): void {
+    // Simulation - à remplacer par l'appel API réel
+    this.pendingBoutiquesCount = 2;
+    this.pendingUsersCount = 3;
   }
 
   logout(): void {
     this.authService.logout();
+    this.router.navigate(['/login']);
   }
 }

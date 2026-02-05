@@ -19,6 +19,10 @@ export const routes: Routes = [
     path: 'admin/approvals', 
     loadComponent: () => import('./components/admin-dashboard/admin-approval/admin-approval.component').then(m => m.AdminApprovalComponent)
   },
+  { 
+    path: 'admin/approvals/users', 
+    loadComponent: () => import('./components/admin-dashboard/admin-user-approval/admin-user-approval.component').then(m => m.AdminUserApprovalComponent)
+  },
   
   // Route Boutique (POS)
   { 
