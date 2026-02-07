@@ -78,51 +78,15 @@
 #### 1. Backend - Validation des Boutiques
 - [ ] Endpoint API pour approuver une boutique
   - PUT `/api/stores/:id/approve`
-  - Envoi d'email de confirmation
   - Activation du compte utilisateur
 - [ ] Endpoint API pour refuser une boutique
   - PUT `/api/stores/:id/reject`
-  - Envoi d'email avec motif de refus
 - [ ] Endpoint API pour récupérer les boutiques en attente
   - GET `/api/stores?status=pending_approval`
 - [ ] Endpoint API pour récupérer les utilisateurs en attente
   - GET `/api/users?role=BOUTIQUE&status=pending`
 
-#### 2. Backend - Notifications Email
-- [ ] Configuration service email (Nodemailer)
-- [ ] Template email d'approbation boutique
-- [ ] Template email de refus boutique
-- [ ] Template email de confirmation d'inscription
-
-#### 3. Système de Caisse (POS) - Fonctionnalités Complètes
-- [ ] Affichage des produits de la boutique
-- [ ] Recherche de produits par nom/code
-- [ ] Ajout au panier
-- [ ] Gestion des quantités
-- [ ] Calcul automatique des totaux
-- [ ] Application de réductions/promotions
-- [ ] Sélection du mode de paiement
-  - Espèces
-  - MVola
-  - Orange Money
-  - Carte Bancaire
-- [ ] Finalisation de la vente
-- [ ] Génération de ticket de caisse
-- [ ] Impression du ticket
-- [ ] QR Code sur le ticket
-- [ ] Décrémentation automatique du stock
-
-#### 4. Gestion Multi-Caisse
-- [ ] Création de caisses multiples
-- [ ] Ouverture de caisse (avec solde initial)
-- [ ] Fermeture de caisse
-- [ ] Rapport Z (X de caisse)
-  - Total des ventes par mode de paiement
-  - Solde final
-  - Nombre de transactions
-- [ ] Historique des ouvertures/fermetures
-
-#### 5. Gestion des Stocks
+#### 2. Gestion des Stocks
 - [ ] Création de produits
 - [ ] Modification de produits
 - [ ] Suppression de produits (soft delete)
@@ -131,6 +95,37 @@
 - [ ] Alertes stock bas (seuil configurable)
 - [ ] Statut automatique "Rupture de stock"
 - [ ] Historique des mouvements de stock
+
+#### 3. Gestion Multi-Caisse
+- [ ] Création de caisses multiples
+- [ ] Ouverture de caisse (avec solde initial)
+- [ ] Fermeture de caisse
+- [ ] Rapport Z (X de caisse)
+  - Total des ventes par mode de paiement
+  - Solde final
+  - Nombre de transactions
+- [ ] Historique des ouvertures/fermetures
+- [ ] Lien entre modes de paiement et caisses
+  - Chaque paiement doit être associé à une caisse spécifique
+  - Suivi des paiements par caisse et par mode
+
+#### 4. Système de Caisse (POS) - Fonctionnalités Complètes
+- [ ] Affichage des produits de la boutique
+- [ ] Recherche de produits par nom/code
+- [ ] Ajout au panier
+- [ ] Gestion des quantités
+- [ ] Calcul automatique des totaux
+- [ ] Application de réductions/promotions
+- [ ] Sélection du mode de paiement (lié aux caisses)
+  - Espèces
+  - MVola
+  - Orange Money
+  - Carte Bancaire
+  - **Chaque paiement est associé à une caisse ouverte**
+- [ ] Finalisation de la vente
+- [ ] Génération de ticket de caisse
+- [ ] Impression du ticket
+- [ ] Décrémentation automatique du stock
 
 ### Priorité Moyenne
 
@@ -230,55 +225,17 @@
 5. **Types**: Définir des interfaces TypeScript strictes
 6. **Styles**: Suivre le design system TailAdmin
 
-### Tests Recommandés
-- [ ] Tests unitaires (Jest pour backend, Jasmine pour frontend)
-- [ ] Tests d'intégration API
-- [ ] Tests end-to-end (Cypress)
-
 ---
 
 ## 🎯 PROCHAINES PRIORITÉS
 
 1. **Implémenter les endpoints API de validation** (priorité CRITIQUE)
-2. **Connecter le POS aux vraies données**
-3. **Connecter le catalogue aux vraies données**
-4. **Système de caisse fonctionnel avec tickets**
-5. **Gestion des stocks complète**
+2. **Gestion des stocks complète** (création, modification, suivi)
+3. **Gestion Multi-Caisse** (ouverture, fermeture, rapport Z)
+4. **Système de caisse fonctionnel avec tickets** (lié aux caisses)
+5. **Connecter le catalogue aux vraies données**
 
 ---
-
-## 🔄 WORKFLOW ACTUEL
-
-```
-dev → preprod → main
-```
-
-### Branches Disponibles
-- **dev**: Développement quotidien
-- **preprod**: Tests et intégration
-- **main**: Production
-
-### Commandes Utiles
-```bash
-# Développement
-git checkout dev
-git add .
-git commit -m "Description"
-git push origin dev
-
-# Déploiement test
-git checkout preprod
-git merge dev --no-ff
-git push origin preprod
-
-# Production
-git checkout main
-git merge preprod --no-ff
-git push origin main
-```
-
----
-
 *Dernière mise à jour: 05 Février 2026*
 *Branche active: dev*
 *Version: 1.0.0*
