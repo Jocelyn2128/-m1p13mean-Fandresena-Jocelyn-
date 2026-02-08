@@ -71,7 +71,6 @@ const orderSchema = new mongoose.Schema({
   },
   receiptNumber: {
     type: String,
-    unique: true,
     required: [true, 'Receipt number is required']
   },
   qrCode: {
