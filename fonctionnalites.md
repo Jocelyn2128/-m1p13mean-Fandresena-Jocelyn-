@@ -178,7 +178,6 @@
   - Réductions temporaires
   - Dates de début/fin
   - Pourcentage ou montant fixe
-- [ ] Notifications push (optionnel)
 
 #### 11. Plan du Centre Commercial
 - [ ] Visualisation des étages
@@ -187,7 +186,7 @@
 
 #### 12. Gestion des Profils
 - [ ] Modification du profil utilisateur
-- [ ] Changement de mot de passe
+- [x] Changement de mot de passe
 - [ ] Upload de photo de profil
 - [ ] Modification des informations boutique
 
