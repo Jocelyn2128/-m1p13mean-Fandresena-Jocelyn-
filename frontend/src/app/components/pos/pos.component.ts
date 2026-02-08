@@ -191,7 +191,9 @@ interface PaymentMethod {
               <button 
                 (click)="checkout()"
                 class="w-full btn-success mb-2" 
-                [disabled]="cart.length === 0 || !isPaymentValid"
+                [disabled]="cart.length === 0 || !isPaymentValid || availableCashiers.length === 0"
+                [class.opacity-50]="cart.length === 0 || !isPaymentValid || availableCashiers.length === 0"
+                [class.cursor-not-allowed]="cart.length === 0 || !isPaymentValid || availableCashiers.length === 0"
               >
                 <i class="fas fa-check mr-2"></i>
                 Valider la vente
@@ -381,7 +383,32 @@ export class PosComponent implements OnInit {
   }
 
   checkout(): void {
-    if (!this.isPaymentValid || this.cart.length === 0) return;
+    // Vérification stricte avant validation
+    if (this.cart.length === 0) {
+      this.errorMessage = 'Le panier est vide';
+      return;
+    }
+
+    if (this.availableCashiers.length === 0) {
+      this.errorMessage = 'Aucune caisse ouverte disponible';
+      return;
+    }
+
+    if (this.payments.length === 0) {
+      this.errorMessage = 'Veuillez ajouter au moins un mode de paiement';
+      return;
+    }
+
+    const invalidPayments = this.payments.filter(p => !p.cashierId || p.amount <= 0);
+    if (invalidPayments.length > 0) {
+      this.errorMessage = 'Veuillez sélectionner une caisse et saisir un montant valide pour chaque paiement';
+      return;
+    }
+
+    if (this.remainingAmount !== 0) {
+      this.errorMessage = `Le montant des paiements (${this.totalPayments} MGA) ne correspond pas au total (${this.total} MGA)`;
+      return;
+    }
 
     const orderData = {
       storeId: this.storeId,
