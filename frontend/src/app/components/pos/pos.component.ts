@@ -155,8 +155,8 @@ interface PaymentMethod {
               <!-- Multiple Payment Methods -->
               <div *ngIf="cart.length > 0" class="mb-4">
                 <h4 class="text-sm font-medium text-gray-700 mb-2">Modes de paiement</h4>
-                <div *ngFor="let payment of payments; let i = index" class="flex items-center space-x-2 mb-2">
-                  <select [(ngModel)]="payment.cashierId" class="form-input text-sm flex-1">
+                <div *ngFor="let payment of payments; let i = index" class="flex items-center space-x-3 mb-3">
+                  <select [(ngModel)]="payment.cashierId" class="form-input text-base py-3 flex-1 min-w-[200px]">
                     <option value="">Sélectionner une caisse</option>
                     <option *ngFor="let cashier of availableCashiers" [value]="cashier._id">
                       {{ cashier.registerName }}
@@ -165,11 +165,11 @@ interface PaymentMethod {
                   <input 
                     type="number" 
                     [(ngModel)]="payment.amount" 
-                    class="form-input text-sm w-24" 
+                    class="form-input text-base py-3 w-32" 
                     placeholder="Montant"
                   >
-                  <button (click)="removePayment(i)" class="text-red-600 hover:text-red-800">
-                    <i class="fas fa-trash"></i>
+                  <button (click)="removePayment(i)" class="text-red-600 hover:text-red-800 p-2">
+                    <i class="fas fa-trash text-lg"></i>
                   </button>
                 </div>
                 <button (click)="addPayment()" class="text-sm text-blue-600 hover:text-blue-800 mt-2">
