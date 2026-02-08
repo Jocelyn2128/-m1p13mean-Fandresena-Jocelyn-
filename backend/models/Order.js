@@ -11,10 +11,22 @@ const orderSchema = new mongoose.Schema({
     ref: 'User',
     default: null
   },
-  cashRegisterId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'CashRegister'
-  },
+  payments: [{
+    cashRegisterId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'CashRegister',
+      required: true
+    },
+    cashRegisterName: {
+      type: String,
+      required: true
+    },
+    amount: {
+      type: Number,
+      required: true,
+      min: [0, 'Amount cannot be negative']
+    }
+  }],
   items: [{
     productId: {
       type: mongoose.Schema.Types.ObjectId,

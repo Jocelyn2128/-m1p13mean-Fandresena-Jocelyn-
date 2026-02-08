@@ -91,12 +91,19 @@ router.post('/', async (req, res) => {
     const { 
       storeId, 
       buyerId, 
-      cashRegisterId, 
+      payments,
       items, 
-      orderType, 
-      paymentMethod,
+      orderType,
       notes 
     } = req.body;
+
+    // Validate payments array
+    if (!payments || !Array.isArray(payments) || payments.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'At least one payment is required'
+      });
+    }
 
     // Validate items and calculate total
     let totalAmount = 0;
@@ -137,36 +144,56 @@ router.post('/', async (req, res) => {
       }
     }
 
-    // Generate receipt number
-    const date = new Date();
-    const prefix = 'REC';
-    const timestamp = date.getFullYear() + 
-                     String(date.getMonth() + 1).padStart(2, '0') + 
-                     String(date.getDate()).padStart(2, '0');
-    const random = Math.floor(1000 + Math.random() * 9000);
-    const receiptNumber = `${prefix}-${timestamp}-${random}`;
+    // Calculate total payments
+    const totalPayments = payments.reduce((sum, p) => sum + (p.amount || 0), 0);
+    
+    // Validate that payments match total amount
+    if (totalPayments !== totalAmount) {
+      return res.status(400).json({
+        success: false,
+        message: `Payment amount mismatch. Expected: ${totalAmount}, Received: ${totalPayments}`
+      });
+    }
+
+    // Get cash register names and validate
+    const paymentDetails = [];
+    for (const payment of payments) {
+      const cashRegister = await CashRegister.findById(payment.cashierId);
+      if (!cashRegister) {
+        return res.status(404).json({
+          success: false,
+          message: `Cash register not found: ${payment.cashierId}`
+        });
+      }
+      
+      paymentDetails.push({
+        cashRegisterId: payment.cashierId,
+        cashRegisterName: cashRegister.registerName,
+        amount: payment.amount
+      });
+    }
 
     // Create order
     const order = new Order({
       storeId,
       buyerId: buyerId || null,
-      cashRegisterId,
+      payments: paymentDetails,
       items: orderItems,
       totalAmount,
       orderType: orderType || 'VENTE_DIRECTE',
-      paymentMethod: paymentMethod || 'non_paye',
-      status: (orderType || 'VENTE_DIRECTE') === 'VENTE_DIRECTE' && paymentMethod ? 'paye' : 'en_attente',
-      receiptNumber,
+      status: 'paye',
       notes
     });
 
     await order.save();
 
-    // Update cash register for direct sales
-    if (orderType === 'VENTE_DIRECTE' && cashRegisterId && paymentMethod) {
-      const cashRegister = await CashRegister.findById(cashRegisterId);
-      if (cashRegister) {
-        await cashRegister.addSale(totalAmount, paymentMethod);
+    // Update all cash registers for direct sales
+    if (orderType === 'VENTE_DIRECTE' || !orderType) {
+      for (const payment of paymentDetails) {
+        const cashRegister = await CashRegister.findById(payment.cashRegisterId);
+        if (cashRegister) {
+          await cashRegister.addSale(payment.amount, 'Espèces');
+        }
       }
     }
 
