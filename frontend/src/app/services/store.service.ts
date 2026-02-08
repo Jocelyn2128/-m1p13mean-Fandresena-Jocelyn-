@@ -31,4 +31,16 @@ export class StoreService {
   createStore(store: Store): Observable<any> {
     return this.http.post(this.apiUrl, store);
   }
+
+  getPendingStores(): Observable<any> {
+    return this.http.get(`${this.apiUrl}/pending/all`);
+  }
+
+  approveStore(storeId: string): Observable<any> {
+    return this.http.put(`${this.apiUrl}/${storeId}/approve`, {});
+  }
+
+  rejectStore(storeId: string): Observable<any> {
+    return this.http.put(`${this.apiUrl}/${storeId}/reject`, {});
+  }
 }

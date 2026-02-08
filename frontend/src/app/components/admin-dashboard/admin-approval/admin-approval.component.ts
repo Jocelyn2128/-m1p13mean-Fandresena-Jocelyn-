@@ -1,8 +1,8 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterModule } from '@angular/router';
-import { HttpClient } from '@angular/common/http';
-import { environment } from '../../../../environments/environment';
+import { RouterModule, Router } from '@angular/router';
+import { StoreService } from '../../../services/store.service';
+import { AuthService } from '../../../services/auth.service';
 
 interface PendingStore {
   _id: string;
@@ -28,42 +28,13 @@ interface PendingStore {
   standalone: true,
   imports: [CommonModule, RouterModule],
   template: `
-    <div class="flex h-screen bg-gray-50">
-      <!-- Sidebar -->
-      <aside class="w-64 bg-white border-r border-gray-200">
-        <div class="p-6">
-          <h1 class="text-2xl font-bold text-blue-600">MallConnect</h1>
-          <p class="text-sm text-gray-500">Administration</p>
-        </div>
-        
-        <nav class="mt-6">
-          <a routerLink="/admin" class="sidebar-link">
-            <i class="fas fa-home w-6"></i>
-            <span>Tableau de bord</span>
-          </a>
-          <a routerLink="/admin/approvals" class="sidebar-link active">
-            <i class="fas fa-check-circle w-6"></i>
-            <span>Approbations</span>
-            <span *ngIf="pendingCount > 0" class="ml-auto bg-red-500 text-white text-xs rounded-full px-2 py-0.5">
-              {{ pendingCount }}
-            </span>
-          </a>
-          <a routerLink="/admin/stores" class="sidebar-link">
-            <i class="fas fa-store w-6"></i>
-            <span>Boutiques</span>
-          </a>
-        </nav>
-      </aside>
+    <header class="bg-white shadow-sm border-b border-gray-200">
+      <div class="px-8 py-4 flex justify-between items-center">
+        <h2 class="text-xl font-semibold text-gray-800">Approbation des Boutiques</h2>
+      </div>
+    </header>
 
-      <!-- Main Content -->
-      <main class="flex-1 overflow-y-auto">
-        <header class="bg-white shadow-sm border-b border-gray-200">
-          <div class="px-8 py-4 flex justify-between items-center">
-            <h2 class="text-xl font-semibold text-gray-800">Approbation des Boutiques</h2>
-          </div>
-        </header>
-
-        <div class="p-8">
+    <div class="p-8">
           <!-- Stats -->
           <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
             <div class="mall-card bg-yellow-50 border-yellow-200">
@@ -73,7 +44,7 @@ interface PendingStore {
                 </div>
                 <div class="ml-4">
                   <p class="text-sm text-yellow-700">En attente</p>
-                  <p class="text-2xl font-bold text-yellow-800">{{ pendingStores.length }}</p>
+                  <p class="text-2xl font-bold text-yellow-800">{{ pendingStoresCount }}</p>
                 </div>
               </div>
             </div>
@@ -103,16 +74,26 @@ interface PendingStore {
             </div>
           </div>
 
+          <!-- Error Message -->
+          <div *ngIf="errorMessage" class="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
+            <p class="text-red-700">{{ errorMessage }}</p>
+          </div>
+
           <!-- Pending Stores List -->
           <div class="mall-card">
             <h3 class="text-lg font-semibold mb-4">Boutiques en attente d'approbation</h3>
             
-            <div *ngIf="pendingStores.length === 0" class="text-center py-8 text-gray-500">
+            <div *ngIf="loading" class="text-center py-8 text-gray-500">
+              <i class="fas fa-spinner fa-spin text-3xl text-blue-500 mb-4"></i>
+              <p>Chargement des boutiques...</p>
+            </div>
+
+            <div *ngIf="!loading && pendingStores.length === 0" class="text-center py-8 text-gray-500">
               <i class="fas fa-check-circle text-5xl text-green-400 mb-4"></i>
               <p>Aucune boutique en attente d'approbation</p>
             </div>
 
-            <div class="space-y-4" *ngIf="pendingStores.length > 0">
+            <div class="space-y-4" *ngIf="!loading && pendingStores.length > 0">
               <div *ngFor="let store of pendingStores" class="border border-gray-200 rounded-lg p-6 hover:shadow-md transition-shadow">
                 <div class="flex justify-between items-start mb-4">
                   <div>
@@ -169,19 +150,24 @@ interface PendingStore {
             </div>
           </div>
         </div>
-      </main>
-    </div>
   `,
   styles: [``]
 })
 export class AdminApprovalComponent implements OnInit {
   pendingStores: PendingStore[] = [];
-  pendingCount = 0;
+  pendingStoresCount = 0;
+  pendingUsersCount = 0;
   approvedToday = 0;
   rejectedCount = 0;
   processingId: string | null = null;
+  loading = false;
+  errorMessage: string | null = null;
 
-  constructor(private http: HttpClient) {}
+  constructor(
+    private storeService: StoreService,
+    private authService: AuthService,
+    private router: Router
+  ) {}
 
   ngOnInit(): void {
     this.loadPendingStores();
@@ -189,96 +175,80 @@ export class AdminApprovalComponent implements OnInit {
   }
 
   loadPendingStores(): void {
-    // Simulation de données pour démonstration
-    // Remplacer par l'appel API réel
-    this.pendingStores = [
-      {
-        _id: '1',
-        name: 'Boutique Électronique Plus',
-        description: 'Vente de produits électroniques et accessoires high-tech',
-        category: 'electronique',
-        location: { floor: '1', shopNumber: 'B-15' },
-        owner: {
-          firstName: 'Jean',
-          lastName: 'Rakoto',
-          email: 'jean.rakoto@email.com',
-          phone: '034 12 345 67'
-        },
-        status: 'pending_approval',
-        createdAt: new Date().toISOString()
+    this.loading = true;
+    this.errorMessage = null;
+    
+    this.storeService.getPendingStores().subscribe({
+      next: (response) => {
+        if (response.success) {
+          this.pendingStores = response.data.map((store: any) => ({
+            _id: store._id,
+            name: store.name,
+            description: store.description,
+            category: store.category,
+            location: store.location,
+            owner: {
+              firstName: store.ownerId.firstName,
+              lastName: store.ownerId.lastName,
+              email: store.ownerId.email,
+              phone: store.ownerId.phone
+            },
+            status: store.status,
+            createdAt: store.createdAt
+          }));
+          this.pendingStoresCount = this.pendingStores.length;
+        }
+        this.loading = false;
       },
-      {
-        _id: '2',
-        name: 'Fashion Style',
-        description: 'Boutique de vêtements tendance pour hommes et femmes',
-        category: 'mode',
-        location: { floor: 'RDC', shopNumber: 'A-08' },
-        owner: {
-          firstName: 'Marie',
-          lastName: 'Rasoanirina',
-          email: 'marie.fashion@email.com',
-          phone: '034 98 765 43'
-        },
-        status: 'pending_approval',
-        createdAt: new Date().toISOString()
+      error: (error) => {
+        this.errorMessage = 'Erreur lors du chargement des boutiques en attente';
+        this.loading = false;
+        console.error('Error loading pending stores:', error);
       }
-    ];
-    this.pendingCount = this.pendingStores.length;
+    });
   }
 
   loadStats(): void {
-    // Simulation de statistiques
-    this.approvedToday = 3;
-    this.rejectedCount = 1;
+    // TODO: Implement stats API call
+    this.approvedToday = 0;
+    this.rejectedCount = 0;
   }
 
   approveStore(storeId: string): void {
     this.processingId = storeId;
+    this.errorMessage = null;
     
-    // Appel API pour approuver
-    // this.http.put(`${environment.apiUrl}/stores/${storeId}/approve`, {}).subscribe({
-    //   next: () => {
-    //     this.pendingStores = this.pendingStores.filter(s => s._id !== storeId);
-    //     this.pendingCount--;
-    //     this.approvedToday++;
-    //     this.processingId = null;
-    //   },
-    //   error: () => {
-    //     this.processingId = null;
-    //   }
-    // });
-
-    // Simulation
-    setTimeout(() => {
-      this.pendingStores = this.pendingStores.filter(s => s._id !== storeId);
-      this.pendingCount--;
-      this.approvedToday++;
-      this.processingId = null;
-    }, 1000);
+    this.storeService.approveStore(storeId).subscribe({
+      next: () => {
+        this.pendingStores = this.pendingStores.filter(s => s._id !== storeId);
+        this.pendingStoresCount--;
+        this.approvedToday++;
+        this.processingId = null;
+      },
+      error: (error) => {
+        this.errorMessage = 'Erreur lors de l\'approbation de la boutique';
+        this.processingId = null;
+        console.error('Error approving store:', error);
+      }
+    });
   }
 
   rejectStore(storeId: string): void {
     this.processingId = storeId;
+    this.errorMessage = null;
     
-    // Appel API pour refuser
-    // this.http.put(`${environment.apiUrl}/stores/${storeId}/reject`, {}).subscribe({
-    //   next: () => {
-    //     this.pendingStores = this.pendingStores.filter(s => s._id !== storeId);
-    //     this.pendingCount--;
-    //     this.rejectedCount++;
-    //     this.processingId = null;
-    //   },
-    //   error: () => {
-    //     this.processingId = null;
-    //   }
-    // });
-
-    // Simulation
-    setTimeout(() => {
-      this.pendingStores = this.pendingStores.filter(s => s._id !== storeId);
-      this.pendingCount--;
-      this.rejectedCount++;
-      this.processingId = null;
-    }, 1000);
+    this.storeService.rejectStore(storeId).subscribe({
+      next: () => {
+        this.pendingStores = this.pendingStores.filter(s => s._id !== storeId);
+        this.pendingStoresCount--;
+        this.rejectedCount++;
+        this.processingId = null;
+      },
+      error: (error) => {
+        this.errorMessage = 'Erreur lors du refus de la boutique';
+        this.processingId = null;
+        console.error('Error rejecting store:', error);
+      }
+    });
   }
 }

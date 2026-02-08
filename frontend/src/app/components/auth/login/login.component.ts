@@ -39,8 +39,20 @@ import { AuthResponse } from '../../../models/user.model';
             >
           </div>
 
-          <div *ngIf="errorMessage" class="bg-red-50 text-red-600 p-3 rounded-lg text-sm">
+          <!-- Message d'erreur normal -->
+          <div *ngIf="errorMessage && !isPendingApproval" class="bg-red-50 text-red-600 p-3 rounded-lg text-sm">
             {{ errorMessage }}
+          </div>
+
+          <!-- Message compte en attente -->
+          <div *ngIf="isPendingApproval" class="bg-yellow-50 border border-yellow-200 text-yellow-800 p-4 rounded-lg">
+            <div class="flex items-start">
+              <i class="fas fa-clock text-yellow-600 mt-1 mr-3"></i>
+              <div>
+                <p class="font-medium mb-1">Compte en attente de validation</p>
+                <p class="text-sm">Votre compte doit être validé par un administrateur avant que vous puissiez vous connecter. Veuillez réessayer plus tard ou contactez l'administration.</p>
+              </div>
+            </div>
           </div>
 
           <button 
@@ -51,6 +63,12 @@ import { AuthResponse } from '../../../models/user.model';
             <span *ngIf="!isLoading">Se connecter</span>
             <span *ngIf="isLoading">Connexion...</span>
           </button>
+          
+          <div class="mt-4 text-center">
+            <a routerLink="/forgot-password" class="text-sm text-blue-600 hover:text-blue-700">
+              Mot de passe oublié ?
+            </a>
+          </div>
         </form>
 
         <div class="mt-6 text-center text-sm text-gray-600">
@@ -68,6 +86,7 @@ export class LoginComponent {
   loginForm: FormGroup;
   isLoading = false;
   errorMessage = '';
+  isPendingApproval = false;
 
   constructor(
     private fb: FormBuilder,
@@ -85,6 +104,7 @@ export class LoginComponent {
 
     this.isLoading = true;
     this.errorMessage = '';
+    this.isPendingApproval = false;
 
     this.authService.login(this.loginForm.value).subscribe({
       next: (response: AuthResponse) => {
@@ -95,7 +115,12 @@ export class LoginComponent {
       },
       error: (error: any) => {
         this.isLoading = false;
-        this.errorMessage = error.error?.message || 'Erreur de connexion';
+        // Check if it's a pending approval error
+        if (error.status === 403 && error.error?.isPending) {
+          this.isPendingApproval = true;
+        } else {
+          this.errorMessage = error.error?.message || 'Erreur de connexion';
+        }
       }
     });
   }

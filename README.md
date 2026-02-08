@@ -18,8 +18,7 @@ main (production)
 
 - **`main`** : Code en production
 - **`preprod`** : Intégration des features avant production (contient dev-back + dev-front)
-- **`dev-back`** : Développement du backend Express/MongoDB
-- **`dev-front`** : Développement du frontend Angular
+- **`dev`** : Développement
 
 ## Stack Technique
 

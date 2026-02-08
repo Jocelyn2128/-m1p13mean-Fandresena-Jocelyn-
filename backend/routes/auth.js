@@ -4,6 +4,7 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { body, validationResult } = require('express-validator');
 const User = require('../models/User');
+const Store = require('../models/Store');
 
 // @route   POST /api/auth/register
 // @desc    Register a new user
@@ -41,13 +42,18 @@ router.post('/register', [
     const hashedPassword = await bcrypt.hash(password, salt);
 
     // Create user
+    // BOUTIQUE users need admin approval (isActive: false)
+    // Other users are active by default
+    const isActive = role === 'BOUTIQUE' ? false : true;
+    
     user = new User({
       email,
       password: hashedPassword,
       firstName,
       lastName,
       phone,
-      role
+      role,
+      isActive
     });
 
     await user.save();
@@ -115,6 +121,24 @@ router.post('/login', [
       return res.status(400).json({ 
         success: false, 
         message: 'Invalid credentials' 
+      });
+    }
+
+    // Check if user account is active
+    // Note: isActive can be undefined for old users, treat undefined as true
+    const isActive = user.isActive !== false;
+    if (!isActive) {
+      // Different message for pending BOUTIQUE accounts vs deactivated accounts
+      if (user.role === 'BOUTIQUE') {
+        return res.status(403).json({ 
+          success: false, 
+          message: 'Votre compte est en attente de validation par un administrateur',
+          isPending: true 
+        });
+      }
+      return res.status(403).json({ 
+        success: false, 
+        message: 'Votre compte a été désactivé. Contactez l\'administrateur.' 
       });
     }
 

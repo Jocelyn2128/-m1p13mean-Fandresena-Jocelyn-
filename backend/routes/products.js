@@ -2,6 +2,30 @@ const express = require('express');
 const router = express.Router();
 const Product = require('../models/Product');
 
+// Middleware to verify JWT
+const authMiddleware = (req, res, next) => {
+  const token = req.header('Authorization')?.replace('Bearer ', '');
+  
+  if (!token) {
+    return res.status(401).json({ 
+      success: false, 
+      message: 'No token, authorization denied' 
+    });
+  }
+
+  try {
+    const jwt = require('jsonwebtoken');
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    req.user = decoded;
+    next();
+  } catch (error) {
+    res.status(401).json({ 
+      success: false, 
+      message: 'Token is not valid' 
+    });
+  }
+};
+
 // @route   GET /api/products
 // @desc    Get all products
 // @access  Public
@@ -87,8 +111,18 @@ router.get('/:id', async (req, res) => {
 // @route   POST /api/products
 // @desc    Create new product
 // @access  Private (Boutique)
-router.post('/', async (req, res) => {
+router.post('/', authMiddleware, async (req, res) => {
   try {
+    // Get storeId from request body
+    const { storeId } = req.body;
+    
+    if (!storeId) {
+      return res.status(400).json({
+        success: false,
+        message: 'Store ID is required'
+      });
+    }
+    
     const product = new Product(req.body);
     await product.save();
 

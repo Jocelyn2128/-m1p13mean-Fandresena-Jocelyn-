@@ -65,7 +65,7 @@ router.get('/:id', async (req, res) => {
 // @access  Private (Boutique)
 router.post('/', async (req, res) => {
   try {
-    const { storeId, registerName } = req.body;
+    const { storeId, registerName, openingAmount = 0 } = req.body;
 
     const register = new CashRegister({
       storeId,
@@ -76,9 +76,14 @@ router.post('/', async (req, res) => {
 
     await register.save();
 
+    // If opening amount is provided, open the register immediately
+    if (openingAmount > 0) {
+      await register.open(null, openingAmount);
+    }
+
     res.status(201).json({
       success: true,
-      message: 'Cash register created successfully',
+      message: openingAmount > 0 ? 'Cash register created and opened successfully' : 'Cash register created successfully',
       data: register
     });
   } catch (error) {

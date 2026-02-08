@@ -72,4 +72,28 @@ export class AuthService {
     const user = this.getCurrentUser();
     return user ? user.role === role : false;
   }
+
+  getPendingAccounts(): Observable<any> {
+    return this.http.get(`${environment.apiUrl}/users/pending-accounts`);
+  }
+
+  getPendingBoutiqueUsers(): Observable<any> {
+    return this.http.get(`${environment.apiUrl}/users/pending-boutiques`);
+  }
+
+  approveUser(userId: string): Observable<any> {
+    return this.http.put(`${environment.apiUrl}/users/${userId}/approve`, {});
+  }
+
+  rejectUser(userId: string): Observable<any> {
+    return this.http.put(`${environment.apiUrl}/users/${userId}/reject`, {});
+  }
+
+  approveBoutiqueUser(userId: string): Observable<any> {
+    return this.http.put(`${environment.apiUrl}/users/${userId}/approve`, {});
+  }
+
+  rejectBoutiqueUser(userId: string): Observable<any> {
+    return this.http.put(`${environment.apiUrl}/users/${userId}/reject`, {});
+  }
 }

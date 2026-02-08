@@ -2,6 +2,30 @@ const express = require('express');
 const router = express.Router();
 const Store = require('../models/Store');
 
+// Middleware to verify JWT
+const authMiddleware = (req, res, next) => {
+  const token = req.header('Authorization')?.replace('Bearer ', '');
+  
+  if (!token) {
+    return res.status(401).json({ 
+      success: false, 
+      message: 'No token, authorization denied' 
+    });
+  }
+
+  try {
+    const jwt = require('jsonwebtoken');
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    req.user = decoded;
+    next();
+  } catch (error) {
+    res.status(401).json({ 
+      success: false, 
+      message: 'Token is not valid' 
+    });
+  }
+};
+
 // @route   GET /api/stores
 // @desc    Get all stores
 // @access  Public
@@ -70,10 +94,11 @@ router.get('/:id', async (req, res) => {
 // @route   POST /api/stores
 // @desc    Create new store
 // @access  Private (Boutique)
-router.post('/', async (req, res) => {
+router.post('/', authMiddleware, async (req, res) => {
   try {
     const store = new Store({
       ...req.body,
+      ownerId: req.user.userId, // Get ownerId from authenticated user
       status: 'pending_approval',
       isApproved: false
     });
@@ -87,6 +112,99 @@ router.post('/', async (req, res) => {
     });
   } catch (error) {
     console.error('Create store error:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Server error' 
+    });
+  }
+});
+
+// @route   GET /api/stores/pending
+// @desc    Get all pending stores
+// @access  Private (Admin)
+router.get('/pending/all', async (req, res) => {
+  try {
+    const stores = await Store.find({ status: 'pending_approval', isApproved: false })
+      .populate('ownerId', 'firstName lastName email phone createdAt')
+      .sort({ createdAt: -1 });
+
+    res.json({
+      success: true,
+      count: stores.length,
+      data: stores
+    });
+  } catch (error) {
+    console.error('Get pending stores error:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Server error' 
+    });
+  }
+});
+
+// @route   PUT /api/stores/:id/approve
+// @desc    Approve a store and activate owner account
+// @access  Private (Admin)
+router.put('/:id/approve', async (req, res) => {
+  try {
+    const store = await Store.findById(req.params.id);
+    
+    if (!store) {
+      return res.status(404).json({ 
+        success: false, 
+        message: 'Store not found' 
+      });
+    }
+
+    // Update store status
+    store.status = 'active';
+    store.isApproved = true;
+    await store.save();
+
+    // Activate owner account
+    const User = require('../models/User');
+    await User.findByIdAndUpdate(store.ownerId, { isActive: true });
+
+    res.json({
+      success: true,
+      message: 'Store approved successfully',
+      data: store
+    });
+  } catch (error) {
+    console.error('Approve store error:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Server error' 
+    });
+  }
+});
+
+// @route   PUT /api/stores/:id/reject
+// @desc    Reject a store
+// @access  Private (Admin)
+router.put('/:id/reject', async (req, res) => {
+  try {
+    const store = await Store.findById(req.params.id);
+    
+    if (!store) {
+      return res.status(404).json({ 
+        success: false, 
+        message: 'Store not found' 
+      });
+    }
+
+    // Update store status to suspended (rejected)
+    store.status = 'suspended';
+    store.isApproved = false;
+    await store.save();
+
+    res.json({
+      success: true,
+      message: 'Store rejected successfully',
+      data: store
+    });
+  } catch (error) {
+    console.error('Reject store error:', error);
     res.status(500).json({ 
       success: false, 
       message: 'Server error' 

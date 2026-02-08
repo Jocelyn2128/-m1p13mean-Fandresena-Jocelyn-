@@ -15,6 +15,7 @@ require('./config/database');
 
 // Routes
 app.use('/api/auth', require('./routes/auth'));
+app.use('/api/auth', require('./routes/passwordReset'));
 app.use('/api/users', require('./routes/users'));
 app.use('/api/stores', require('./routes/stores'));
 app.use('/api/products', require('./routes/products'));
