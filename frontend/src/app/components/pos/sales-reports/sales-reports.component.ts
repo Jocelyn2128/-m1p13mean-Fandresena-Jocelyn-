@@ -244,12 +244,16 @@ export class SalesReportsComponent implements OnInit {
           // Filtrer les commandes selon les critères
           let orders = response.data;
           
-          // Filtrer par date
+          // Filtrer par date (inclusif - toute la journée)
           if (this.filters.startDate) {
-            orders = orders.filter((o: any) => new Date(o.createdAt) >= new Date(this.filters.startDate!));
+            const startDate = new Date(this.filters.startDate!);
+            startDate.setHours(0, 0, 0, 0);
+            orders = orders.filter((o: any) => new Date(o.createdAt) >= startDate);
           }
           if (this.filters.endDate) {
-            orders = orders.filter((o: any) => new Date(o.createdAt) <= new Date(this.filters.endDate!));
+            const endDate = new Date(this.filters.endDate!);
+            endDate.setHours(23, 59, 59, 999);
+            orders = orders.filter((o: any) => new Date(o.createdAt) <= endDate);
           }
           
           // Filtrer par produit

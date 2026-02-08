@@ -258,8 +258,19 @@ export class SalesHistoryComponent implements OnInit {
 
   applyFilters(): void {
     this.filteredOrders = this.orders.filter(order => {
-      const matchesDate = (!this.filters.startDate || new Date(order.createdAt) >= new Date(this.filters.startDate)) &&
-                         (!this.filters.endDate || new Date(order.createdAt) <= new Date(this.filters.endDate));
+      // Filtrer par date (inclusif - toute la journée)
+      let matchesDate = true;
+      if (this.filters.startDate) {
+        const startDate = new Date(this.filters.startDate);
+        startDate.setHours(0, 0, 0, 0);
+        matchesDate = matchesDate && new Date(order.createdAt) >= startDate;
+      }
+      if (this.filters.endDate) {
+        const endDate = new Date(this.filters.endDate);
+        endDate.setHours(23, 59, 59, 999);
+        matchesDate = matchesDate && new Date(order.createdAt) <= endDate;
+      }
+      
       const matchesOrderNumber = !this.filters.orderNumber || 
                                 order.receiptNumber.toLowerCase().includes(this.filters.orderNumber.toLowerCase());
       const matchesStatus = !this.filters.status || order.status === this.filters.status;
