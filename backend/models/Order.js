@@ -62,8 +62,22 @@ const orderSchema = new mongoose.Schema({
   },
   status: {
     type: String,
-    enum: ['en_attente', 'paye', 'annule', 'pret_pour_retrait', 'retire'],
+    enum: ['en_attente', 'paye', 'acompte', 'annule', 'avoir', 'pret_pour_retrait', 'retire'],
     default: 'en_attente'
+  },
+  paidAmount: {
+    type: Number,
+    default: 0
+  },
+  creditNoteId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'CreditNote',
+    default: null
+  },
+  parentOrderId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Order',
+    default: null
   },
   paymentMethod: {
     type: String,
