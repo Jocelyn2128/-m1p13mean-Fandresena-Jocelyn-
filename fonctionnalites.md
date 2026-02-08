@@ -76,56 +76,56 @@
 ### Priorité Haute
 
 #### 1. Backend - Validation des Boutiques
-- [ ] Endpoint API pour approuver une boutique
+- [x] Endpoint API pour approuver une boutique
   - PUT `/api/stores/:id/approve`
   - Activation du compte utilisateur
-- [ ] Endpoint API pour refuser une boutique
+- [x] Endpoint API pour refuser une boutique
   - PUT `/api/stores/:id/reject`
-- [ ] Endpoint API pour récupérer les boutiques en attente
+- [x] Endpoint API pour récupérer les boutiques en attente
   - GET `/api/stores?status=pending_approval`
-- [ ] Endpoint API pour récupérer les utilisateurs en attente
+- [x] Endpoint API pour récupérer les utilisateurs en attente
   - GET `/api/users?role=BOUTIQUE&status=pending`
 
 #### 2. Gestion des Stocks
-- [ ] Création de produits
-- [ ] Modification de produits
-- [ ] Suppression de produits (soft delete)
-- [ ] Upload d'images produits
-- [ ] Gestion des catégories
-- [ ] Alertes stock bas (seuil configurable)
-- [ ] Statut automatique "Rupture de stock"
-- [ ] Historique des mouvements de stock
+- [x] Création de produits
+- [x] Modification de produits
+- [x] Suppression de produits (soft delete)
+- [x] Upload d'images produits
+- [x] Gestion des catégories
+- [x] Alertes stock bas (seuil configurable)
+- [x] Statut automatique "Rupture de stock"
+- [x] Historique des mouvements de stock
 
 #### 3. Gestion Multi-Caisse
-- [ ] Création de caisses multiples
-- [ ] Ouverture de caisse (avec solde initial)
-- [ ] Fermeture de caisse
-- [ ] Rapport Z (X de caisse)
+- [x] Création de caisses multiples
+- [x] Ouverture de caisse (avec solde initial)
+- [x] Fermeture de caisse
+- [x] Rapport Z (X de caisse)
   - Total des ventes par mode de paiement
   - Solde final
   - Nombre de transactions
-- [ ] Historique des ouvertures/fermetures
-- [ ] Lien entre modes de paiement et caisses
+- [x] Historique des ouvertures/fermetures
+- [x] Lien entre modes de paiement et caisses
   - Chaque paiement doit être associé à une caisse spécifique
   - Suivi des paiements par caisse et par mode
 
 #### 4. Système de Caisse (POS) - Fonctionnalités Complètes
-- [ ] Affichage des produits de la boutique
-- [ ] Recherche de produits par nom/code
-- [ ] Ajout au panier
-- [ ] Gestion des quantités
-- [ ] Calcul automatique des totaux
-- [ ] Application de réductions/promotions
-- [ ] Sélection du mode de paiement (lié aux caisses)
+- [x] Affichage des produits de la boutique
+- [x] Recherche de produits par nom/code
+- [x] Ajout au panier
+- [x] Gestion des quantités
+- [x] Calcul automatique des totaux
+- [x] Application de réductions/promotions
+- [x] Sélection du mode de paiement (lié aux caisses)
   - Espèces
   - MVola
   - Orange Money
   - Carte Bancaire
   - **Chaque paiement est associé à une caisse ouverte**
-- [ ] Finalisation de la vente
+- [x] Finalisation de la vente
 - [ ] Génération de ticket de caisse
 - [ ] Impression du ticket
-- [ ] Décrémentation automatique du stock
+- [x] Décrémentation automatique du stock
 
 ### Priorité Moyenne
 

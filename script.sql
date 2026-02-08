@@ -191,12 +191,3 @@ db.stores.createIndex({ "name": "text", "category": "text" });
 -- // Filtres et Tris
 db.products.createIndex({ "createdAt": -1 });
 db.orders.createIndex({ "createdAt": -1 });
-
-continuer et voici une petit modification:
-- en separe user boutique et boutique car un user boutique peuve avoir plusieur boutique:
-   - on donne pas les information de la boutique lors de son inscription mais plutot apres la creation de son compte et on lie les boutiques a son compte via ownerId
-   - apres son inscription, le user boutique peut créer une ou plusieurs boutiques et les lier à son compte via ownerId dans la collection stores. Ainsi, un user boutique peut gérer plusieurs boutiques sans que les informations de ces boutiques soient directement liées à son compte utilisateur.
-   - donc si une utilisateur boutique creer une boutique l'admin doit valider la creation de la boutique
-- rectifie l'interface user boutique car il y a 2 sidebar
-- ajouter une interface pour gerer son boutique et les produits de sa boutique
-- ajouter une interface pour gerer les caisses de sa boutique
