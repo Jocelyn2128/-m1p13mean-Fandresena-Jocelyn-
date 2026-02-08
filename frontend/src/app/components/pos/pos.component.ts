@@ -361,7 +361,18 @@ export class PosComponent implements OnInit {
   }
 
   addPayment(): void {
-    this.payments.push({ cashierId: '', amount: 0 });
+    if (this.availableCashiers.length === 0) {
+      this.errorMessage = 'Aucune caisse ouverte disponible';
+      setTimeout(() => this.errorMessage = null, 3000);
+      return;
+    }
+    
+    // Pré-remplir avec le montant restant
+    const remaining = Math.max(0, this.remainingAmount);
+    this.payments.push({ 
+      cashierId: '', 
+      amount: remaining > 0 ? remaining : 0 
+    });
   }
 
   removePayment(index: number): void {
@@ -377,12 +388,24 @@ export class PosComponent implements OnInit {
   }
 
   get isPaymentValid(): boolean {
-    return this.payments.length > 0 && 
-           this.remainingAmount === 0 && 
-           this.payments.every(p => p.cashierId && p.amount > 0);
+    if (this.payments.length === 0) return false;
+    
+    // Vérifier que chaque paiement a une caisse sélectionnée et un montant valide
+    for (const payment of this.payments) {
+      if (!payment.cashierId || payment.cashierId === '' || payment.amount <= 0) {
+        return false;
+      }
+    }
+    
+    // Vérifier que le montant total correspond exactement (tolérance de 0.01)
+    const tolerance = 0.01;
+    return Math.abs(this.remainingAmount) < tolerance;
   }
 
   checkout(): void {
+    // Clear previous error
+    this.errorMessage = null;
+    
     // Vérification stricte avant validation
     if (this.cart.length === 0) {
       this.errorMessage = 'Le panier est vide';
@@ -399,14 +422,28 @@ export class PosComponent implements OnInit {
       return;
     }
 
-    const invalidPayments = this.payments.filter(p => !p.cashierId || p.amount <= 0);
-    if (invalidPayments.length > 0) {
-      this.errorMessage = 'Veuillez sélectionner une caisse et saisir un montant valide pour chaque paiement';
+    // Check for payments without cashier selected
+    const paymentsWithoutCashier = this.payments.filter(p => !p.cashierId || p.cashierId === '');
+    if (paymentsWithoutCashier.length > 0) {
+      this.errorMessage = `Veuillez sélectionner une caisse pour tous les paiements (${paymentsWithoutCashier.length} paiement(s) sans caisse)`;
       return;
     }
 
-    if (this.remainingAmount !== 0) {
-      this.errorMessage = `Le montant des paiements (${this.totalPayments} MGA) ne correspond pas au total (${this.total} MGA)`;
+    // Check for payments with invalid amount
+    const paymentsWithInvalidAmount = this.payments.filter(p => !p.amount || p.amount <= 0);
+    if (paymentsWithInvalidAmount.length > 0) {
+      this.errorMessage = `Le montant doit être supérieur à 0 pour tous les paiements`;
+      return;
+    }
+
+    // Check for partial payment - must pay exact amount
+    const tolerance = 0.01;
+    if (Math.abs(this.remainingAmount) > tolerance) {
+      if (this.remainingAmount > 0) {
+        this.errorMessage = `Paiement incomplet. Il manque ${this.remainingAmount} MGA pour atteindre le total de ${this.total} MGA. Les ventes directes nécessitent un paiement complet.`;
+      } else {
+        this.errorMessage = `Montant excédentaire de ${Math.abs(this.remainingAmount)} MGA. Le montant exact est requis.`;
+      }
       return;
     }
 

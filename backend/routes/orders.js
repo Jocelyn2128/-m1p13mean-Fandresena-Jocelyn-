@@ -148,12 +148,38 @@ router.post('/', async (req, res) => {
     // Calculate total payments
     const totalPayments = payments.reduce((sum, p) => sum + (p.amount || 0), 0);
     
+    // For direct sales (POS), require full payment
+    if (orderType === 'VENTE_DIRECTE' || !orderType) {
+      if (totalPayments !== totalAmount) {
+        return res.status(400).json({
+          success: false,
+          message: `Payment amount mismatch. Expected: ${totalAmount}, Received: ${totalPayments}. Full payment is required for direct sales.`
+        });
+      }
+    }
+    
     // Determine status based on payment
     let orderStatus = 'paye';
     if (totalPayments === 0) {
       orderStatus = 'en_attente';
     } else if (totalPayments < totalAmount) {
       orderStatus = 'acompte';
+    }
+
+    // Validate each payment has a cashier and valid amount
+    for (const payment of payments) {
+      if (!payment.cashierId || payment.cashierId === '') {
+        return res.status(400).json({
+          success: false,
+          message: 'All payments must have a cash register selected'
+        });
+      }
+      if (!payment.amount || payment.amount <= 0) {
+        return res.status(400).json({
+          success: false,
+          message: 'All payments must have an amount greater than 0'
+        });
+      }
     }
 
     // Get cash register names and validate
