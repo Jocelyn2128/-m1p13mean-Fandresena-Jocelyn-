@@ -7,14 +7,13 @@ import { environment } from '../../../../environments/environment';
 
 interface Order {
   _id: string;
-  orderNumber: string;
+  receiptNumber: string;
   items: Array<{
-    productName: string;
+    name: string;
     quantity: number;
-    price: number;
+    unitPrice: number;
   }>;
   totalAmount: number;
-  paymentMethod: string;
   status: string;
   createdAt: string;
   customerName?: string;
@@ -139,14 +138,14 @@ interface Order {
             <tbody class="bg-white divide-y divide-gray-200">
               <tr *ngFor="let order of filteredOrders" class="hover:bg-gray-50">
                 <td class="px-6 py-4 whitespace-nowrap">
-                  <span class="font-medium text-gray-900">{{ order.orderNumber }}</span>
+                  <span class="font-medium text-gray-900">{{ order.receiptNumber }}</span>
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                   {{ order.createdAt | date:'dd/MM/yyyy HH:mm' }}
                 </td>
                 <td class="px-6 py-4 text-sm text-gray-900">
                   <div *ngFor="let item of order.items" class="mb-1">
-                    {{ item.quantity }}x {{ item.productName }}
+                    {{ item.quantity }}x {{ item.name }}
                   </div>
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
@@ -181,7 +180,7 @@ interface Order {
     <div *ngIf="selectedOrder" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
       <div class="bg-white rounded-xl shadow-xl w-full max-w-lg m-4 max-h-[90vh] overflow-y-auto">
         <div class="p-6 border-b border-gray-200 flex justify-between items-center">
-          <h3 class="text-lg font-semibold">Détails de la commande {{ selectedOrder.orderNumber }}</h3>
+          <h3 class="text-lg font-semibold">Détails de la commande {{ selectedOrder.receiptNumber }}</h3>
           <button (click)="closeOrderDetails()" class="text-gray-400 hover:text-gray-600">
             <i class="fas fa-times"></i>
           </button>
@@ -195,8 +194,8 @@ interface Order {
           <div class="border-t pt-4 mb-4">
             <h4 class="font-medium mb-2">Articles</h4>
             <div *ngFor="let item of selectedOrder.items" class="flex justify-between py-2 border-b border-gray-100">
-              <span>{{ item.quantity }}x {{ item.productName }}</span>
-              <span class="font-medium">{{ item.price * item.quantity | number }} MGA</span>
+              <span>{{ item.quantity }}x {{ item.name }}</span>
+              <span class="font-medium">{{ item.unitPrice * item.quantity | number }} MGA</span>
             </div>
           </div>
           
@@ -262,7 +261,7 @@ export class SalesHistoryComponent implements OnInit {
       const matchesDate = (!this.filters.startDate || new Date(order.createdAt) >= new Date(this.filters.startDate)) &&
                          (!this.filters.endDate || new Date(order.createdAt) <= new Date(this.filters.endDate));
       const matchesOrderNumber = !this.filters.orderNumber || 
-                                order.orderNumber.toLowerCase().includes(this.filters.orderNumber.toLowerCase());
+                                order.receiptNumber.toLowerCase().includes(this.filters.orderNumber.toLowerCase());
       const matchesStatus = !this.filters.status || order.status === this.filters.status;
       
       return matchesDate && matchesOrderNumber && matchesStatus;
@@ -317,7 +316,7 @@ export class SalesHistoryComponent implements OnInit {
   }
 
   printReceipt(order: Order): void {
-    alert('Impression du reçu ' + order.orderNumber);
+    alert('Impression du reçu ' + order.receiptNumber);
   }
 
   refreshData(): void {

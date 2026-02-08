@@ -162,7 +162,7 @@ interface ReportData {
               <thead>
                 <tr class="border-b">
                   <th class="text-left py-2 text-sm font-medium text-gray-500">Date</th>
-                  <th class="text-right py-2 text-sm font-medium text-gray-500">Commandes</th>
+                  <th class="text-right py-2 text-sm font-medium text-gray-500">Ventes</th>
                   <th class="text-right py-2 text-sm font-medium text-gray-500">CA</th>
                 </tr>
               </thead>
@@ -255,7 +255,7 @@ export class SalesReportsComponent implements OnInit {
           // Filtrer par produit
           if (this.filters.product) {
             orders = orders.filter((o: any) => 
-              o.items.some((i: any) => i.productName?.toLowerCase().includes(this.filters.product!.toLowerCase()))
+              o.items.some((i: any) => i.name?.toLowerCase().includes(this.filters.product!.toLowerCase()))
             );
           }
           
@@ -293,11 +293,11 @@ export class SalesReportsComponent implements OnInit {
       // Par produit
       order.items.forEach((item: any) => {
         totalItems += item.quantity;
-        const productName = item.productName || 'Produit inconnu';
+        const productName = item.name || 'Produit inconnu';
         const existing = productMap.get(productName) || { quantity: 0, revenue: 0 };
         productMap.set(productName, {
           quantity: existing.quantity + item.quantity,
-          revenue: existing.revenue + (item.price * item.quantity)
+          revenue: existing.revenue + (item.unitPrice * item.quantity)
         });
       });
       
@@ -309,10 +309,19 @@ export class SalesReportsComponent implements OnInit {
         orders: existingDate.orders + 1
       });
       
-      // Par mode de paiement
-      const paymentMethod = order.paymentMethod || 'Non spécifié';
-      const existingPayment = paymentMap.get(paymentMethod) || 0;
-      paymentMap.set(paymentMethod, existingPayment + order.totalAmount);
+      // Par mode de paiement - utiliser les payments s'ils existent
+      if (order.payments && order.payments.length > 0) {
+        order.payments.forEach((payment: any) => {
+          const cashRegisterName = payment.cashRegisterName || 'Caisse';
+          const existingPayment = paymentMap.get(cashRegisterName) || 0;
+          paymentMap.set(cashRegisterName, existingPayment + payment.amount);
+        });
+      } else {
+        // Fallback sur paymentMethod si pas de payments
+        const paymentMethod = order.paymentMethod || 'Non spécifié';
+        const existingPayment = paymentMap.get(paymentMethod) || 0;
+        paymentMap.set(paymentMethod, existingPayment + order.totalAmount);
+      }
     });
     
     return {
