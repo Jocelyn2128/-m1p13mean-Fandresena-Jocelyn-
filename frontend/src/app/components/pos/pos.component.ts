@@ -385,7 +385,9 @@ export class PosComponent implements OnInit {
 
     const orderData = {
       storeId: this.storeId,
-      payments: this.payments,
+      orderType: 'VENTE_DIRECTE',
+      paymentMethod: 'Espèces', // TODO: Support multiple payment methods
+      cashRegisterId: this.payments[0]?.cashierId,
       items: this.cart.map(item => ({
         productId: item.product._id,
         quantity: item.quantity,

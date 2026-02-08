@@ -137,6 +137,15 @@ router.post('/', async (req, res) => {
       }
     }
 
+    // Generate receipt number
+    const date = new Date();
+    const prefix = 'REC';
+    const timestamp = date.getFullYear() + 
+                     String(date.getMonth() + 1).padStart(2, '0') + 
+                     String(date.getDate()).padStart(2, '0');
+    const random = Math.floor(1000 + Math.random() * 9000);
+    const receiptNumber = `${prefix}-${timestamp}-${random}`;
+
     // Create order
     const order = new Order({
       storeId,
@@ -144,9 +153,10 @@ router.post('/', async (req, res) => {
       cashRegisterId,
       items: orderItems,
       totalAmount,
-      orderType,
+      orderType: orderType || 'VENTE_DIRECTE',
       paymentMethod: paymentMethod || 'non_paye',
-      status: orderType === 'VENTE_DIRECTE' && paymentMethod ? 'paye' : 'en_attente',
+      status: (orderType || 'VENTE_DIRECTE') === 'VENTE_DIRECTE' && paymentMethod ? 'paye' : 'en_attente',
+      receiptNumber,
       notes
     });
 
