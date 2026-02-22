@@ -54,6 +54,20 @@ export const routes: Routes = [
     path: 'catalog', 
     loadComponent: () => import('./components/catalog/catalog.component').then(m => m.CatalogComponent)
   },
+  { 
+    path: 'catalog/product/:id', 
+    loadComponent: () => import('./components/catalog/product-detail/product-detail.component').then(m => m.ProductDetailComponent)
+  },
+  { 
+    path: 'catalog/store/:id', 
+    loadComponent: () => import('./components/catalog/store-detail/store-detail.component').then(m => m.StoreDetailComponent)
+  },
+  
+  // Favoris
+  { 
+    path: 'favorites', 
+    loadComponent: () => import('./components/favorites/favorites.component').then(m => m.FavoritesComponent)
+  },
   
   { path: '**', redirectTo: '/login' }
 ];

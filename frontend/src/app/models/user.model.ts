@@ -1,6 +1,7 @@
 // User Model
 export interface User {
   _id?: string;
+  id?: string;  // Backend returns 'id' instead of '_id'
   email: string;
   firstName: string;
   lastName: string;

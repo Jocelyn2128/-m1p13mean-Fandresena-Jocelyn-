@@ -130,35 +130,33 @@
 ### Priorité Moyenne
 
 #### 6. Catalogue Client - Fonctionnalités Complètes
-- [ ] Affichage réel des produits depuis l'API
-- [ ] Affichage réel des boutiques depuis l'API
-- [ ] Filtres avancés
+- [x] Affichage réel des produits depuis l'API
+- [x] Affichage réel des boutiques depuis l'API
+- [x] Filtres avancés
   - Par catégorie
-  - Par étage
   - Par prix (min/max)
   - En promotion
   - En stock
-- [ ] Recherche textuelle
-- [ ] Tri des résultats
-- [ ] Pagination
-- [ ] Vue détaillée produit
-- [ ] Vue détaillée boutique
+- [x] Recherche textuelle
+- [x] Tri des résultats
+- [x] Pagination
+- [x] Vue détaillée produit
+- [x] Vue détaillée boutique
 
 #### 7. Système de Favoris
-- [ ] Ajouter/retirer des favoris (produits)
-- [ ] Ajouter/retirer des favoris (boutiques)
-- [ ] Page "Mes favoris"
-- [ ] Persistence en base de données
+- [x] Ajouter/retirer des favoris (produits)
+- [x] Ajouter/retirer des favoris (boutiques)
+- [x] Page "Mes favoris"
+- [x] Persistence en base de données
 
-#### 8. Réservations & Commandes Client
-- [ ] Réservation de produits (24h)
+#### 8. Commandes Client
+- [ ] Commande de produits
 - [ ] Panier d'achat
 - [ ] Passage de commande
 - [ ] Paiement en ligne (à définir)
 - [ ] Suivi des commandes
 - [ ] Historique des achats
 - [ ] Portefeuille de tickets numériques
-- [ ] QR Code pour retrait en boutique
 
 #### 9. Statistiques Admin
 - [ ] Tableau de bord avec vraies données

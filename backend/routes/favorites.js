@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const Favorite = require('../models/Favorite');
+const mongoose = require('mongoose');
 
 // @route   GET /api/favorites
 // @desc    Get user's favorites
@@ -13,6 +14,13 @@ router.get('/', async (req, res) => {
       return res.status(400).json({ 
         success: false, 
         message: 'User ID is required' 
+      });
+    }
+
+    if (!mongoose.Types.ObjectId.isValid(userId)) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Invalid user ID' 
       });
     }
 
@@ -43,6 +51,27 @@ router.get('/', async (req, res) => {
 router.post('/', async (req, res) => {
   try {
     const { userId, targetId, type } = req.body;
+
+    if (!userId || !targetId || !type) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'userId, targetId and type are required' 
+      });
+    }
+
+    if (!mongoose.Types.ObjectId.isValid(userId)) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Invalid user ID' 
+      });
+    }
+
+    if (!mongoose.Types.ObjectId.isValid(targetId)) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Invalid target ID' 
+      });
+    }
 
     // Check if already favorited
     const existing = await Favorite.findOne({ userId, targetId, type });
@@ -82,6 +111,27 @@ router.delete('/', async (req, res) => {
   try {
     const { userId, targetId, type } = req.body;
 
+    if (!userId || !targetId || !type) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'userId, targetId and type are required' 
+      });
+    }
+
+    if (!mongoose.Types.ObjectId.isValid(userId)) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Invalid user ID' 
+      });
+    }
+
+    if (!mongoose.Types.ObjectId.isValid(targetId)) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Invalid target ID' 
+      });
+    }
+
     const favorite = await Favorite.findOneAndDelete({ 
       userId, 
       targetId, 
@@ -114,6 +164,27 @@ router.delete('/', async (req, res) => {
 router.get('/check', async (req, res) => {
   try {
     const { userId, targetId, type } = req.query;
+
+    if (!userId || !targetId || !type) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'userId, targetId and type are required' 
+      });
+    }
+
+    if (!mongoose.Types.ObjectId.isValid(userId)) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Invalid user ID' 
+      });
+    }
+
+    if (!mongoose.Types.ObjectId.isValid(targetId)) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Invalid target ID' 
+      });
+    }
 
     const favorite = await Favorite.findOne({ userId, targetId, type });
 
