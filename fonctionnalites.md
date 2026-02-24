@@ -150,13 +150,13 @@
 - [x] Persistence en base de données
 
 #### 8. Commandes Client
-- [ ] Commande de produits
-- [ ] Panier d'achat
-- [ ] Passage de commande
-- [ ] Paiement en ligne (à définir)
-- [ ] Suivi des commandes
-- [ ] Historique des achats
-- [ ] Portefeuille de tickets numériques
+- [ x] Commande de produits
+- [ x] Panier d'achat
+- [ x] Passage de commande
+- [ x] Paiement en ligne (à définir)
+- [ x] Suivi des commandes
+- [ x] Historique des achats
+- [ x] Portefeuille de tickets numériques
 
 #### 9. Statistiques Admin
 - [ ] Tableau de bord avec vraies données
