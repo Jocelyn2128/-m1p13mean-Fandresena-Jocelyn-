@@ -159,13 +159,13 @@
 - [ x] Portefeuille de tickets numériques
 
 #### 9. Statistiques Admin
-- [ ] Tableau de bord avec vraies données
-- [ ] Graphiques des ventes (Chart.js)
-- [ ] Boutiques les plus visitées
-- [ ] Produits les plus populaires
-- [ ] Nombre total de ventes
-- [ ] Revenus totaux
-- [ ] Export de rapports (PDF/Excel)
+- [ x] Tableau de bord avec vraies données
+- [ x] Graphiques des ventes (Chart.js)
+- [ x] Boutiques les plus visitées
+- [ x] Produits les plus populaires
+- [ x] Nombre total de ventes
+- [ x] Revenus totaux
+- [ x] Export de rapports (PDF/Excel)
 
 ### Priorité Basse
 
