@@ -22,7 +22,7 @@ export const routes: Routes = [
       { path: 'approvals/users', loadComponent: () => import('./components/admin-dashboard/admin-user-approval/admin-user-approval.component').then(m => m.AdminUserApprovalComponent) },
       { path: 'approvals/password-requests', loadComponent: () => import('./components/admin-dashboard/admin-password-requests/admin-password-requests.component').then(m => m.AdminPasswordRequestsComponent) },
       { path: 'events', loadComponent: () => import('./components/admin-dashboard/admin-dashboard.component').then(m => m.AdminDashboardComponent) },
-      { path: 'statistics', loadComponent: () => import('./components/admin-dashboard/admin-dashboard.component').then(m => m.AdminDashboardComponent) },
+      { path: 'statistics', loadComponent: () => import('./components/admin-dashboard/admin-statistics/admin-statistics.component').then(m => m.AdminStatisticsComponent) },
     ]
   },
 
