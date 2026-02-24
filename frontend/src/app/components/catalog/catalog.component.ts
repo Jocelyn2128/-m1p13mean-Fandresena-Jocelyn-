@@ -210,14 +210,7 @@ import { environment } from '../../../environments/environment';
           </div>
 
           <!-- Empty State -->
-          <div *ngIf="!loadingProducts && filteredProducts.length === 0" class="text-center py-12 bg-white rounded-xl">
-            <i class="fas fa-search text-4xl text-gray-300 mb-4"></i>
-            <p class="text-gray-500">Aucun produit trouvé</p>
-            <button (click)="resetFilters()" class="mt-4 text-blue-600 hover:text-blue-700">
-              Réinitialiser les filtres
-            </button>
-          </div>
-
+       
           <!-- Products Grid -->
           <div *ngIf="!loadingProducts && filteredProducts.length > 0" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             <div 
