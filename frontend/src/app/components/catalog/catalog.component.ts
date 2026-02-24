@@ -6,6 +6,7 @@ import { AuthService } from '../../services/auth.service';
 import { ProductService } from '../../services/product.service';
 import { StoreService } from '../../services/store.service';
 import { FavoriteService } from '../../services/favorite.service';
+import { CartService } from '../../services/cart.service';
 import { User } from '../../models/user.model';
 import { Product } from '../../models/product.model';
 import { Store } from '../../models/store.model';
@@ -53,17 +54,23 @@ import { environment } from '../../../environments/environment';
                 <i class="fas fa-heart text-xl"></i>
               </a>
 
-              <button class="relative p-2 text-gray-600 hover:text-blue-600">
+              <button (click)="goToCart()" class="relative p-2 text-gray-600 hover:text-blue-600">
                 <i class="fas fa-shopping-cart text-xl"></i>
-                <span class="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                <span *ngIf="cartCount > 0" class="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
                   {{ cartCount }}
                 </span>
               </button>
 
-              <div *ngIf="currentUser; else loginBtn" class="flex items-center space-x-2">
-                <span class="text-sm text-gray-700">{{ currentUser.firstName }}</span>
-                <button (click)="logout()" class="text-sm text-red-600 hover:text-red-700">
-                  Déconnexion
+              <div *ngIf="currentUser; else loginBtn" class="flex items-center space-x-3">
+                <a routerLink="/order-history" class="text-sm text-gray-600 hover:text-blue-600" title="Mes commandes">
+                  <i class="fas fa-shopping-bag"></i>
+                </a>
+                <a routerLink="/wallet" class="text-sm text-purple-600 hover:text-purple-700" title="Mon portefeuille">
+                  <i class="fas fa-wallet"></i>
+                </a>
+                <span class="text-sm text-gray-700 font-medium">{{ currentUser.firstName }}</span>
+                <button (click)="logout()" class="text-sm text-red-500 hover:text-red-600">
+                  <i class="fas fa-sign-out-alt"></i>
                 </button>
               </div>
               <ng-template #loginBtn>
@@ -409,7 +416,7 @@ export class CatalogComponent implements OnInit {
   cartItems: any[] = [];
 
   categories: string[] = ['Mode', 'Électronique', 'Alimentation', 'Maison', 'Beauté', 'Sports', 'Jouets', 'Autre'];
-  
+
   filters = {
     category: '',
     minPrice: null as number | null,
@@ -433,6 +440,7 @@ export class CatalogComponent implements OnInit {
     private productService: ProductService,
     private storeService: StoreService,
     private favoriteService: FavoriteService,
+    private cartService: CartService,
     private router: Router
   ) {
     this.currentUser = this.authService.getCurrentUser();
@@ -441,6 +449,10 @@ export class CatalogComponent implements OnInit {
       if (user) {
         this.loadFavorites();
       }
+    });
+    // Subscribe to cart count
+    this.cartService.cartItems$.subscribe(() => {
+      this.cartCount = this.cartService.getItemCount();
     });
   }
 
@@ -651,7 +663,7 @@ export class CatalogComponent implements OnInit {
 
     if (this.searchQueryStores && this.searchQueryStores.trim()) {
       const query = this.searchQueryStores.toLowerCase().trim();
-      filtered = filtered.filter(s => 
+      filtered = filtered.filter(s =>
         (s.name && s.name.toLowerCase().includes(query)) ||
         (s.category && s.category.toLowerCase().includes(query)) ||
         (s.description && s.description.toLowerCase().includes(query))
@@ -677,7 +689,7 @@ export class CatalogComponent implements OnInit {
     // Search filter for products
     if (this.searchQueryProducts && this.searchQueryProducts.trim()) {
       const query = this.searchQueryProducts.toLowerCase().trim();
-      filtered = filtered.filter(p => 
+      filtered = filtered.filter(p =>
         (p.name && p.name.toLowerCase().includes(query)) ||
         (p.category && p.category.toLowerCase().includes(query)) ||
         (p.storeName && p.storeName.toLowerCase().includes(query)) ||
@@ -688,7 +700,7 @@ export class CatalogComponent implements OnInit {
     // Category filter
     if (this.filters.category) {
       const filterCat = this.filters.category.toLowerCase().trim();
-      filtered = filtered.filter(p => 
+      filtered = filtered.filter(p =>
         p.category && p.category.toLowerCase().trim() === filterCat
       );
     }
@@ -770,11 +782,11 @@ export class CatalogComponent implements OnInit {
     const maxVisible = 5;
     let start = Math.max(1, this.currentPage - Math.floor(maxVisible / 2));
     let end = Math.min(this.totalPages, start + maxVisible - 1);
-    
+
     if (end - start < maxVisible - 1) {
       start = Math.max(1, end - maxVisible + 1);
     }
-    
+
     for (let i = start; i <= end; i++) {
       pages.push(i);
     }
@@ -797,35 +809,15 @@ export class CatalogComponent implements OnInit {
 
   addToCart(product: any, event: Event): void {
     event.stopPropagation();
-    
     if (product.stockStatus === 'rupture') {
       alert('Produit en rupture de stock');
       return;
     }
-
-    const currentInCart = this.getCartQuantity(product._id);
-    const availableStock = product.stockQuantity || 0;
-    
-    if (currentInCart >= availableStock) {
-      alert('Stock insuffisant pour ajouter plus d\'articles');
-      return;
-    }
-
-    this.cartCount++;
-    this.cartItems = this.cartItems || [];
-    const existingItem = this.cartItems.find((item: any) => item.productId === product._id);
-    
-    if (existingItem) {
-      existingItem.quantity++;
-    } else {
-      this.cartItems.push({ productId: product._id, quantity: 1 });
-    }
+    this.cartService.addToCart(product);
   }
 
-  getCartQuantity(productId: string): number {
-    if (!this.cartItems) return 0;
-    const item = this.cartItems.find((item: any) => item.productId === productId);
-    return item ? item.quantity : 0;
+  goToCart(): void {
+    this.router.navigate(['/cart']);
   }
 
   logout(): void {
