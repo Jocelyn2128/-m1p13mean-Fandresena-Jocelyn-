@@ -173,10 +173,18 @@ router.put('/:id', async (req, res) => {
 });
 
 // @route   DELETE /api/products/:id
-// @desc    Delete product (soft delete)
+// @desc    Delete product (soft delete for boutiques, hard delete for admins)
 // @access  Private (Boutique or Admin)
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', authMiddleware, async (req, res) => {
   try {
+    // Admin — hard delete
+    if (req.user && req.user.role === 'ADMIN_MALL') {
+      const deleted = await Product.findByIdAndDelete(req.params.id);
+      if (!deleted) return res.status(404).json({ success: false, message: 'Product not found' });
+      return res.json({ success: true, message: 'Product permanently deleted' });
+    }
+
+    // Non-admin — perform soft delete
     const product = await Product.findByIdAndUpdate(
       req.params.id,
       { isActive: false, updatedAt: Date.now() },
@@ -184,22 +192,54 @@ router.delete('/:id', async (req, res) => {
     );
 
     if (!product) {
-      return res.status(404).json({ 
-        success: false, 
-        message: 'Product not found' 
-      });
+      return res.status(404).json({ success: false, message: 'Product not found' });
     }
 
-    res.json({
-      success: true,
-      message: 'Product deleted successfully'
-    });
+    res.json({ success: true, message: 'Product deleted (soft) successfully' });
   } catch (error) {
     console.error('Delete product error:', error);
     res.status(500).json({ 
       success: false, 
       message: 'Server error' 
     });
+  }
+});
+
+
+// @route   PUT /api/products/:id/moderate
+// @desc    Moderate product (admin actions: approve | block | delete)
+// @access  Private (Admin)
+router.put('/:id/moderate', authMiddleware, async (req, res) => {
+  try {
+    if (!req.user || req.user.role !== 'ADMIN_MALL') {
+      return res.status(403).json({ success: false, message: 'Admin access required' });
+    }
+
+    const { action, reason, notifyOwner } = req.body;
+    const product = await Product.findById(req.params.id);
+    if (!product) return res.status(404).json({ success: false, message: 'Product not found' });
+
+    if (action === 'approve') {
+      product.isActive = true;
+      await product.save();
+      return res.json({ success: true, message: 'Product marked as safe (approved)' });
+    }
+
+    if (action === 'block') {
+      product.isActive = false;
+      await product.save();
+      return res.json({ success: true, message: 'Product blocked (soft-deleted)' });
+    }
+
+    if (action === 'delete') {
+      await Product.findByIdAndDelete(req.params.id);
+      return res.json({ success: true, message: 'Product permanently deleted by admin' });
+    }
+
+    res.status(400).json({ success: false, message: 'Unknown action' });
+  } catch (error) {
+    console.error('Moderate product error:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
   }
 });
 

@@ -10,17 +10,17 @@ const CreditNote = require('../models/CreditNote');
 // @access  Private
 router.get('/', async (req, res) => {
   try {
-    const { 
-      storeId, 
-      buyerId, 
-      status, 
+    const {
+      storeId,
+      buyerId,
+      status,
       orderType,
-      page = 1, 
-      limit = 20 
+      page = 1,
+      limit = 20
     } = req.query;
 
     const filter = {};
-    
+
     if (storeId) filter.storeId = storeId;
     if (buyerId) filter.buyerId = buyerId;
     if (status) filter.status = status;
@@ -46,9 +46,9 @@ router.get('/', async (req, res) => {
     });
   } catch (error) {
     console.error('Get orders error:', error);
-    res.status(500).json({ 
-      success: false, 
-      message: 'Server error' 
+    res.status(500).json({
+      success: false,
+      message: 'Server error'
     });
   }
 });
@@ -65,9 +65,9 @@ router.get('/:id', async (req, res) => {
       .populate('items.productId');
 
     if (!order) {
-      return res.status(404).json({ 
-        success: false, 
-        message: 'Order not found' 
+      return res.status(404).json({
+        success: false,
+        message: 'Order not found'
       });
     }
 
@@ -77,9 +77,9 @@ router.get('/:id', async (req, res) => {
     });
   } catch (error) {
     console.error('Get order error:', error);
-    res.status(500).json({ 
-      success: false, 
-      message: 'Server error' 
+    res.status(500).json({
+      success: false,
+      message: 'Server error'
     });
   }
 });
@@ -89,13 +89,13 @@ router.get('/:id', async (req, res) => {
 // @access  Private
 router.post('/', async (req, res) => {
   try {
-    const { 
-      storeId, 
-      buyerId, 
+    const {
+      storeId,
+      buyerId,
       payments,
-      items, 
+      items,
       orderType,
-      notes 
+      notes
     } = req.body;
 
     // Validate payments array
@@ -113,16 +113,16 @@ router.post('/', async (req, res) => {
     for (const item of items) {
       const product = await Product.findById(item.productId);
       if (!product) {
-        return res.status(404).json({ 
-          success: false, 
-          message: `Product not found: ${item.productId}` 
+        return res.status(404).json({
+          success: false,
+          message: `Product not found: ${item.productId}`
         });
       }
 
       if (product.stockQuantity < item.quantity) {
-        return res.status(400).json({ 
-          success: false, 
-          message: `Insufficient stock for product: ${product.name}` 
+        return res.status(400).json({
+          success: false,
+          message: `Insufficient stock for product: ${product.name}`
         });
       }
 
@@ -147,7 +147,7 @@ router.post('/', async (req, res) => {
 
     // Calculate total payments
     const totalPayments = payments.reduce((sum, p) => sum + (p.amount || 0), 0);
-    
+
     // For direct sales (POS), require full payment
     if (orderType === 'VENTE_DIRECTE' || !orderType) {
       if (totalPayments !== totalAmount) {
@@ -157,7 +157,7 @@ router.post('/', async (req, res) => {
         });
       }
     }
-    
+
     // Determine status based on payment
     let orderStatus = 'paye';
     if (totalPayments === 0) {
@@ -192,7 +192,7 @@ router.post('/', async (req, res) => {
           message: `Cash register not found: ${payment.cashierId}`
         });
       }
-      
+
       paymentDetails.push({
         cashRegisterId: payment.cashierId,
         cashRegisterName: cashRegister.registerName,
@@ -203,9 +203,9 @@ router.post('/', async (req, res) => {
     // Generate receipt number
     const date = new Date();
     const prefix = 'REC';
-    const timestamp = date.getFullYear() + 
-                     String(date.getMonth() + 1).padStart(2, '0') + 
-                     String(date.getDate()).padStart(2, '0');
+    const timestamp = date.getFullYear() +
+      String(date.getMonth() + 1).padStart(2, '0') +
+      String(date.getDate()).padStart(2, '0');
     const random = Math.floor(1000 + Math.random() * 9000);
     const receiptNumber = `${prefix}-${timestamp}-${random}`;
 
@@ -244,9 +244,9 @@ router.post('/', async (req, res) => {
     });
   } catch (error) {
     console.error('Create order error:', error);
-    res.status(500).json({ 
-      success: false, 
-      message: 'Server error' 
+    res.status(500).json({
+      success: false,
+      message: 'Server error'
     });
   }
 });
@@ -257,12 +257,12 @@ router.post('/', async (req, res) => {
 router.put('/:id/status', async (req, res) => {
   try {
     const { status } = req.body;
-    
+
     const order = await Order.findById(req.params.id);
     if (!order) {
-      return res.status(404).json({ 
-        success: false, 
-        message: 'Order not found' 
+      return res.status(404).json({
+        success: false,
+        message: 'Order not found'
       });
     }
 
@@ -276,9 +276,9 @@ router.put('/:id/status', async (req, res) => {
     });
   } catch (error) {
     console.error('Update order status error:', error);
-    res.status(500).json({ 
-      success: false, 
-      message: 'Server error' 
+    res.status(500).json({
+      success: false,
+      message: 'Server error'
     });
   }
 });
@@ -293,9 +293,9 @@ router.get('/receipt/:receiptNumber', async (req, res) => {
       .populate('items.productId', 'images');
 
     if (!order) {
-      return res.status(404).json({ 
-        success: false, 
-        message: 'Receipt not found' 
+      return res.status(404).json({
+        success: false,
+        message: 'Receipt not found'
       });
     }
 
@@ -305,9 +305,9 @@ router.get('/receipt/:receiptNumber', async (req, res) => {
     });
   } catch (error) {
     console.error('Get receipt error:', error);
-    res.status(500).json({ 
-      success: false, 
-      message: 'Server error' 
+    res.status(500).json({
+      success: false,
+      message: 'Server error'
     });
   }
 });
@@ -318,7 +318,7 @@ router.get('/receipt/:receiptNumber', async (req, res) => {
 router.post('/:id/pay', async (req, res) => {
   try {
     const { payments } = req.body;
-    
+
     if (!payments || !Array.isArray(payments) || payments.length === 0) {
       return res.status(400).json({
         success: false,
@@ -328,9 +328,9 @@ router.post('/:id/pay', async (req, res) => {
 
     const order = await Order.findById(req.params.id);
     if (!order) {
-      return res.status(404).json({ 
-        success: false, 
-        message: 'Order not found' 
+      return res.status(404).json({
+        success: false,
+        message: 'Order not found'
       });
     }
 
@@ -361,7 +361,7 @@ router.post('/:id/pay', async (req, res) => {
           message: `Cash register not found: ${payment.cashierId}`
         });
       }
-      
+
       paymentDetails.push({
         cashRegisterId: payment.cashierId,
         cashRegisterName: cashRegister.registerName,
@@ -375,7 +375,7 @@ router.post('/:id/pay', async (req, res) => {
     // Update order
     order.payments.push(...paymentDetails);
     order.paidAmount += totalPayments;
-    
+
     // Update status if fully paid
     if (order.paidAmount >= order.totalAmount) {
       order.status = 'paye';
@@ -390,9 +390,9 @@ router.post('/:id/pay', async (req, res) => {
     });
   } catch (error) {
     console.error('Pay order error:', error);
-    res.status(500).json({ 
-      success: false, 
-      message: 'Server error' 
+    res.status(500).json({
+      success: false,
+      message: 'Server error'
     });
   }
 });
@@ -406,9 +406,9 @@ router.post('/:id/cancel', async (req, res) => {
 
     const order = await Order.findById(req.params.id);
     if (!order) {
-      return res.status(404).json({ 
-        success: false, 
-        message: 'Order not found' 
+      return res.status(404).json({
+        success: false,
+        message: 'Order not found'
       });
     }
 
@@ -476,9 +476,9 @@ router.post('/:id/cancel', async (req, res) => {
     });
   } catch (error) {
     console.error('Cancel order error:', error);
-    res.status(500).json({ 
-      success: false, 
-      message: 'Server error' 
+    res.status(500).json({
+      success: false,
+      message: 'Server error'
     });
   }
 });
@@ -499,9 +499,9 @@ router.post('/:id/partial-credit', async (req, res) => {
 
     const order = await Order.findById(req.params.id);
     if (!order) {
-      return res.status(404).json({ 
-        success: false, 
-        message: 'Order not found' 
+      return res.status(404).json({
+        success: false,
+        message: 'Order not found'
       });
     }
 
@@ -517,10 +517,10 @@ router.post('/:id/partial-credit', async (req, res) => {
     const creditItems = [];
 
     for (const creditItem of items) {
-      const orderItem = order.items.find(i => 
+      const orderItem = order.items.find(i =>
         i.productId.toString() === creditItem.productId
       );
-      
+
       if (!orderItem) {
         return res.status(404).json({
           success: false,
@@ -582,9 +582,9 @@ router.post('/:id/partial-credit', async (req, res) => {
     });
   } catch (error) {
     console.error('Partial credit error:', error);
-    res.status(500).json({ 
-      success: false, 
-      message: 'Server error' 
+    res.status(500).json({
+      success: false,
+      message: 'Server error'
     });
   }
 });
@@ -605,9 +605,9 @@ router.post('/:id/pay-with-credit', async (req, res) => {
 
     const order = await Order.findById(req.params.id);
     if (!order) {
-      return res.status(404).json({ 
-        success: false, 
-        message: 'Order not found' 
+      return res.status(404).json({
+        success: false,
+        message: 'Order not found'
       });
     }
 
@@ -616,7 +616,7 @@ router.post('/:id/pay-with-credit', async (req, res) => {
 
     for (const creditNoteData of creditNotes) {
       const creditNote = await CreditNote.findById(creditNoteData.creditNoteId);
-      
+
       if (!creditNote) {
         return res.status(404).json({
           success: false,
@@ -632,7 +632,7 @@ router.post('/:id/pay-with-credit', async (req, res) => {
       }
 
       const useAmount = Math.min(creditNote.remainingAmount, remainingAmount - totalCreditUsed);
-      
+
       if (useAmount > 0) {
         creditNote.remainingAmount -= useAmount;
         creditNote.usedAmount += useAmount;
@@ -652,7 +652,7 @@ router.post('/:id/pay-with-credit', async (req, res) => {
 
     // Update order
     order.paidAmount += totalCreditUsed;
-    
+
     if (order.paidAmount >= order.totalAmount) {
       order.status = 'paye';
     } else if (order.paidAmount > 0) {
@@ -668,10 +668,297 @@ router.post('/:id/pay-with-credit', async (req, res) => {
     });
   } catch (error) {
     console.error('Pay with credit error:', error);
-    res.status(500).json({ 
-      success: false, 
-      message: 'Server error' 
+    res.status(500).json({
+      success: false,
+      message: 'Server error'
     });
+  }
+});
+
+// @route   POST /api/orders/online
+// @desc    Create an online order (COMMANDE_LIGNE) without requiring a cash register
+// @access  Private (Acheteur)
+router.post('/online', async (req, res) => {
+  try {
+    const { storeId, buyerId, items, paymentMethod, notes } = req.body;
+
+    if (!storeId) {
+      return res.status(400).json({ success: false, message: 'storeId is required' });
+    }
+    if (!items || !Array.isArray(items) || items.length === 0) {
+      return res.status(400).json({ success: false, message: 'items array is required' });
+    }
+    const validPaymentMethods = ['MVola', 'Orange Money', 'Airtel Money', 'Carte Bancaire', 'Espèces'];
+    if (!paymentMethod || !validPaymentMethods.includes(paymentMethod)) {
+      return res.status(400).json({ success: false, message: 'Valid paymentMethod is required' });
+    }
+
+    let totalAmount = 0;
+    const orderItems = [];
+
+    for (const item of items) {
+      const product = await Product.findById(item.productId);
+      if (!product) {
+        return res.status(404).json({ success: false, message: `Product not found: ${item.productId}` });
+      }
+      if (product.stockQuantity < item.quantity) {
+        return res.status(400).json({ success: false, message: `Stock insuffisant pour: ${product.name}` });
+      }
+
+      const unitPrice = product.getCurrentPrice ? product.getCurrentPrice() : product.price;
+      const subTotal = unitPrice * item.quantity;
+      totalAmount += subTotal;
+
+      orderItems.push({
+        productId: product._id,
+        name: product.name,
+        quantity: item.quantity,
+        unitPrice,
+        subTotal
+      });
+
+      // Decrease stock immediately for online orders
+      product.stockQuantity -= item.quantity;
+      await product.save();
+    }
+
+    // Generate receipt number
+    const date = new Date();
+    const timestamp = date.getFullYear() +
+      String(date.getMonth() + 1).padStart(2, '0') +
+      String(date.getDate()).padStart(2, '0');
+    const random = Math.floor(1000 + Math.random() * 9000);
+    const receiptNumber = `ONL-${timestamp}-${random}`;
+
+    const order = new Order({
+      storeId,
+      buyerId: buyerId || null,
+      payments: [],   // No cash register for online orders
+      items: orderItems,
+      totalAmount,
+      paidAmount: totalAmount,  // Considered paid online
+      orderType: 'COMMANDE_LIGNE',
+      status: 'paye',
+      paymentMethod,
+      receiptNumber,
+      notes
+    });
+
+    await order.save();
+
+    res.status(201).json({
+      success: true,
+      message: 'Commande en ligne créée avec succès',
+      data: order
+    });
+  } catch (error) {
+    console.error('Online order error:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
+
+// @route   GET /api/orders/my-orders
+// @desc    Get orders for a specific buyer
+// @access  Private (Acheteur)
+router.get('/my-orders', async (req, res) => {
+  try {
+    const { buyerId, status, page = 1, limit = 20 } = req.query;
+
+    if (!buyerId) {
+      return res.status(400).json({ success: false, message: 'buyerId is required' });
+    }
+
+    const filter = { buyerId };
+    if (status) filter.status = status;
+
+    const orders = await Order.find(filter)
+      .populate('storeId', 'name location')
+      .populate('items.productId', 'images name')
+      .limit(limit * 1)
+      .skip((page - 1) * limit)
+      .sort({ createdAt: -1 });
+
+    const count = await Order.countDocuments(filter);
+
+    res.json({
+      success: true,
+      count: orders.length,
+      total: count,
+      totalPages: Math.ceil(count / limit),
+      currentPage: Number(page),
+      data: orders
+    });
+  } catch (error) {
+    console.error('My orders error:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
+
+// @route   GET /api/orders/stats
+// @desc    Get global statistics for Admin dashboard
+// @access  Private (Admin)
+router.get('/stats', async (req, res) => {
+  try {
+    const { period = '30' } = req.query;
+    const daysBack = parseInt(period) || 30;
+    const since = new Date();
+    since.setDate(since.getDate() - daysBack);
+
+    // ─── KPI Totaux ───────────────────────────────────────────────────
+    const kpiAgg = await Order.aggregate([
+      { $match: { status: { $in: ['paye', 'retire'] } } },
+      {
+        $group: {
+          _id: null,
+          totalRevenue: { $sum: '$paidAmount' },
+          totalOrders: { $sum: 1 },
+          avgOrderValue: { $avg: '$paidAmount' }
+        }
+      }
+    ]);
+
+    const kpi = kpiAgg[0] || { totalRevenue: 0, totalOrders: 0, avgOrderValue: 0 };
+
+    // Count unique buyers
+    const uniqueBuyers = await Order.distinct('buyerId', { buyerId: { $ne: null } });
+
+    // ─── Revenus par jour (30 derniers jours) ─────────────────────────
+    const dailyRevenue = await Order.aggregate([
+      {
+        $match: {
+          status: { $in: ['paye', 'retire'] },
+          createdAt: { $gte: since }
+        }
+      },
+      {
+        $group: {
+          _id: {
+            year: { $year: '$createdAt' },
+            month: { $month: '$createdAt' },
+            day: { $dayOfMonth: '$createdAt' }
+          },
+          revenue: { $sum: '$paidAmount' },
+          orders: { $sum: 1 }
+        }
+      },
+      { $sort: { '_id.year': 1, '_id.month': 1, '_id.day': 1 } }
+    ]);
+
+    // Fill missing days with 0
+    const dailyMap = {};
+    dailyRevenue.forEach(d => {
+      const dateStr = `${d._id.year}-${String(d._id.month).padStart(2, '0')}-${String(d._id.day).padStart(2, '0')}`;
+      dailyMap[dateStr] = { revenue: d.revenue, orders: d.orders };
+    });
+
+    const dailyLabels = [];
+    const dailyValues = [];
+    const dailyOrderCounts = [];
+    for (let i = daysBack - 1; i >= 0; i--) {
+      const d = new Date();
+      d.setDate(d.getDate() - i);
+      const label = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+      dailyLabels.push(label);
+      dailyValues.push(dailyMap[label]?.revenue || 0);
+      dailyOrderCounts.push(dailyMap[label]?.orders || 0);
+    }
+
+    // ─── Top 5 boutiques par revenus ──────────────────────────────────
+    const topStores = await Order.aggregate([
+      { $match: { status: { $in: ['paye', 'retire'] } } },
+      {
+        $group: {
+          _id: '$storeId',
+          revenue: { $sum: '$paidAmount' },
+          orders: { $sum: 1 }
+        }
+      },
+      { $sort: { revenue: -1 } },
+      { $limit: 5 },
+      {
+        $lookup: {
+          from: 'stores',
+          localField: '_id',
+          foreignField: '_id',
+          as: 'store'
+        }
+      },
+      { $unwind: { path: '$store', preserveNullAndEmpty: true } },
+      {
+        $project: {
+          storeName: { $ifNull: ['$store.name', 'Boutique inconnue'] },
+          revenue: 1,
+          orders: 1
+        }
+      }
+    ]);
+
+    // ─── Top 5 produits les plus vendus ───────────────────────────────
+    const topProducts = await Order.aggregate([
+      { $match: { status: { $in: ['paye', 'retire'] } } },
+      { $unwind: '$items' },
+      {
+        $group: {
+          _id: '$items.productId',
+          productName: { $first: '$items.name' },
+          totalQuantity: { $sum: '$items.quantity' },
+          totalRevenue: { $sum: '$items.subTotal' }
+        }
+      },
+      { $sort: { totalQuantity: -1 } },
+      { $limit: 10 }
+    ]);
+
+    // ─── Répartition par statut ───────────────────────────────────────
+    const statusDistribution = await Order.aggregate([
+      {
+        $group: {
+          _id: '$status',
+          count: { $sum: 1 }
+        }
+      }
+    ]);
+
+    // ─── Répartition par type de commande ─────────────────────────────
+    const typeDistribution = await Order.aggregate([
+      {
+        $group: {
+          _id: '$orderType',
+          count: { $sum: 1 },
+          revenue: { $sum: '$paidAmount' }
+        }
+      }
+    ]);
+
+    res.json({
+      success: true,
+      data: {
+        kpi: {
+          totalRevenue: kpi.totalRevenue,
+          totalOrders: kpi.totalOrders,
+          avgOrderValue: Math.round(kpi.avgOrderValue),
+          uniqueBuyers: uniqueBuyers.length
+        },
+        charts: {
+          dailyRevenue: {
+            labels: dailyLabels,
+            revenues: dailyValues,
+            orders: dailyOrderCounts
+          },
+          topStores: topStores.map(s => ({
+            name: s.storeName,
+            revenue: s.revenue,
+            orders: s.orders
+          })),
+          topProducts,
+          statusDistribution,
+          typeDistribution
+        }
+      }
+    });
+  } catch (error) {
+    console.error('Stats error:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
   }
 });
 

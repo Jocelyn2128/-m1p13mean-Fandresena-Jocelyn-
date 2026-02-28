@@ -51,6 +51,89 @@ router.get('/profile', authMiddleware, async (req, res) => {
   }
 });
 
+// @route   PUT /api/users/profile
+// @desc    Update current user profile
+// @access  Private
+router.put('/profile', authMiddleware, async (req, res) => {
+  try {
+    const updates = {};
+    const allowed = ['firstName', 'lastName', 'phone', 'email'];
+    allowed.forEach(field => {
+      if (req.body[field] !== undefined) updates[field] = req.body[field];
+    });
+
+    const user = await User.findByIdAndUpdate(req.user.userId, { ...updates, updatedAt: Date.now() }, { new: true }).select('-password');
+    if (!user) return res.status(404).json({ success: false, message: 'User not found' });
+
+    res.json({ success: true, message: 'Profile updated', data: user });
+  } catch (error) {
+    console.error('Update profile error:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
+
+// @route   POST /api/users/profile/avatar
+// @desc    Upload avatar for current user
+// @access  Private
+router.post('/profile/avatar', authMiddleware, async (req, res) => {
+  const multer = require('multer');
+  const path = require('path');
+  const fs = require('fs');
+
+  const storage = multer.diskStorage({
+    destination: function (req, file, cb) {
+      const dir = path.join(__dirname, '..', 'uploads', 'avatars');
+      if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+      cb(null, dir);
+    },
+    filename: function (req, file, cb) {
+      const ext = path.extname(file.originalname);
+      const name = `${req.user.userId}-${Date.now()}${ext}`;
+      cb(null, name);
+    }
+  });
+
+  const fileFilter = (req, file, cb) => {
+    const allowed = ['image/jpeg', 'image/png', 'image/jpg'];
+    if (allowed.includes(file.mimetype)) cb(null, true);
+    else cb(new Error('Invalid file type'));
+  };
+
+  const upload = multer({ storage, limits: { fileSize: 2 * 1024 * 1024 }, fileFilter }).single('avatar');
+
+  upload(req, res, async function (err) {
+    if (err) {
+      console.error('Avatar upload error:', err);
+      return res.status(400).json({ success: false, message: err.message || 'Upload error' });
+    }
+
+    if (!req.file) {
+      return res.status(400).json({ success: false, message: 'No file uploaded' });
+    }
+
+    try {
+      const user = await User.findById(req.user.userId);
+      if (!user) return res.status(404).json({ success: false, message: 'User not found' });
+
+      // Remove old avatar if exists
+      if (user.avatar) {
+        const oldPath = path.join(__dirname, '..', 'uploads', 'avatars', user.avatar);
+        if (fs.existsSync(oldPath)) {
+          try { fs.unlinkSync(oldPath); } catch (e) { console.warn('Failed to remove old avatar', e); }
+        }
+      }
+
+      user.avatar = req.file.filename;
+      await user.save();
+
+      res.json({ success: true, message: 'Avatar uploaded', data: { avatar: user.avatar, url: `/uploads/avatars/${user.avatar}` } });
+    } catch (error) {
+      console.error('Save avatar error:', error);
+      res.status(500).json({ success: false, message: 'Server error' });
+    }
+  });
+});
+
 // @route   GET /api/users/search
 // @desc    Search user by phone (for cashier)
 // @access  Private (Boutique only)
