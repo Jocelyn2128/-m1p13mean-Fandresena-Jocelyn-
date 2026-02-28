@@ -7,8 +7,6 @@ const User = require('../models/User');
 const Store = require('../models/Store');
 
 // @route   POST /api/auth/register
-// @desc    Register a new user
-// @access  Public
 router.post('/register', [
   body('email').isEmail().normalizeEmail(),
   body('password').isLength({ min: 6 }),
@@ -20,49 +18,42 @@ router.post('/register', [
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-      return res.status(400).json({ 
-        success: false, 
-        errors: errors.array() 
-      });
+      return res.status(400).json({ success: false, errors: errors.array() });
     }
 
-    const { email, password, firstName, lastName, phone, role } = req.body;
+    const { email, password, firstName, lastName, phone, role, store } = req.body;
 
-    // Check if user already exists
     let user = await User.findOne({ email });
     if (user) {
-      return res.status(400).json({ 
-        success: false, 
-        message: 'User already exists with this email' 
-      });
+      return res.status(400).json({ success: false, message: 'User already exists with this email' });
     }
 
-    // Hash password
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
-
-    // Create user
-    // BOUTIQUE users need admin approval (isActive: false)
-    // Other users are active by default
     const isActive = role === 'BOUTIQUE' ? false : true;
     
-    user = new User({
-      email,
-      password: hashedPassword,
-      firstName,
-      lastName,
-      phone,
-      role,
-      isActive
-    });
-
+    user = new User({ email, password: hashedPassword, firstName, lastName, phone, role, isActive });
     await user.save();
 
-    // Create JWT token
+    // Si boutique, créer la boutique liée
+    if (role === 'BOUTIQUE' && store) {
+      const newStore = new Store({
+        ownerId: user._id,
+        name: store.name,
+        description: store.description,
+        category: store.category,
+        location: store.location,
+        openingHours: store.openingHours || '08:00 - 18:00',
+        acceptedPaymentMethods: store.acceptedPaymentMethods || ['Espèces'],
+        status: 'pending_approval'
+      });
+      await newStore.save();
+    }
+
     const token = jwt.sign(
       { userId: user._id, role: user.role },
       process.env.JWT_SECRET,
-      { expiresIn: process.env.JWT_EXPIRE }
+      { expiresIn: 28800 }
     );
 
     res.status(201).json({
@@ -70,27 +61,16 @@ router.post('/register', [
       message: 'User registered successfully',
       data: {
         token,
-        user: {
-          id: user._id,
-          email: user.email,
-          firstName: user.firstName,
-          lastName: user.lastName,
-          role: user.role
-        }
+        user: { id: user._id, email: user.email, firstName: user.firstName, lastName: user.lastName, role: user.role }
       }
     });
   } catch (error) {
     console.error('Register error:', error);
-    res.status(500).json({ 
-      success: false, 
-      message: 'Server error' 
-    });
+    res.status(500).json({ success: false, message: 'Server error' });
   }
 });
 
 // @route   POST /api/auth/login
-// @desc    Login user
-// @access  Public
 router.post('/login', [
   body('email').isEmail().normalizeEmail(),
   body('password').exists()
@@ -98,37 +78,23 @@ router.post('/login', [
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-      return res.status(400).json({ 
-        success: false, 
-        errors: errors.array() 
-      });
+      return res.status(400).json({ success: false, errors: errors.array() });
     }
 
     const { email, password } = req.body;
 
-    // Find user
     const user = await User.findOne({ email });
     if (!user) {
-      return res.status(400).json({ 
-        success: false, 
-        message: 'Invalid credentials' 
-      });
+      return res.status(400).json({ success: false, message: 'Invalid credentials' });
     }
 
-    // Check password
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
-      return res.status(400).json({ 
-        success: false, 
-        message: 'Invalid credentials' 
-      });
+      return res.status(400).json({ success: false, message: 'Invalid credentials' });
     }
 
-    // Check if user account is active
-    // Note: isActive can be undefined for old users, treat undefined as true
     const isActive = user.isActive !== false;
     if (!isActive) {
-      // Different message for pending BOUTIQUE accounts vs deactivated accounts
       if (user.role === 'BOUTIQUE') {
         return res.status(403).json({ 
           success: false, 
@@ -136,21 +102,16 @@ router.post('/login', [
           isPending: true 
         });
       }
-      return res.status(403).json({ 
-        success: false, 
-        message: 'Votre compte a été désactivé. Contactez l\'administrateur.' 
-      });
+      return res.status(403).json({ success: false, message: "Votre compte a été désactivé. Contactez l'administrateur." });
     }
 
-    // Update last login
     user.lastLogin = new Date();
     await user.save();
 
-    // Create JWT token
     const token = jwt.sign(
       { userId: user._id, role: user.role },
       process.env.JWT_SECRET,
-      { expiresIn: process.env.JWT_EXPIRE }
+      { expiresIn: 28800 }
     );
 
     res.json({
@@ -158,22 +119,12 @@ router.post('/login', [
       message: 'Login successful',
       data: {
         token,
-        user: {
-          id: user._id,
-          email: user.email,
-          firstName: user.firstName,
-          lastName: user.lastName,
-          role: user.role,
-          phone: user.phone
-        }
+        user: { id: user._id, email: user.email, firstName: user.firstName, lastName: user.lastName, role: user.role, phone: user.phone }
       }
     });
   } catch (error) {
     console.error('Login error:', error);
-    res.status(500).json({ 
-      success: false, 
-      message: 'Server error' 
-    });
+    res.status(500).json({ success: false, message: 'Server error' });
   }
 });
 

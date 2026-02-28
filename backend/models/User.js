@@ -33,6 +33,9 @@ const userSchema = new mongoose.Schema({
     required: [true, 'Phone number is required'],
     trim: true
   },
+  avatar: {
+    type: String
+  },
   isActive: {
     type: Boolean,
     default: true
