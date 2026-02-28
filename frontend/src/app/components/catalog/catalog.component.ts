@@ -7,6 +7,7 @@ import { ProductService } from '../../services/product.service';
 import { StoreService } from '../../services/store.service';
 import { FavoriteService } from '../../services/favorite.service';
 import { CartService } from '../../services/cart.service';
+import { BannerComponent } from '../shared/banner/banner.component';
 import { User } from '../../models/user.model';
 import { Product } from '../../models/product.model';
 import { Store } from '../../models/store.model';
@@ -15,7 +16,7 @@ import { environment } from '../../../environments/environment';
 @Component({
   selector: 'app-catalog',
   standalone: true,
-  imports: [CommonModule, RouterModule, FormsModule],
+  imports: [CommonModule, RouterModule, FormsModule, BannerComponent],
   template: `
     <div class="min-h-screen bg-gray-50">
       <!-- Header -->
@@ -83,13 +84,12 @@ import { environment } from '../../../environments/environment';
         </div>
       </header>
 
-      <!-- Hero Section -->
-      <div class="bg-gradient-to-r from-blue-600 to-indigo-700 text-white">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
-          <h2 class="text-4xl font-bold mb-4">Bienvenue sur MallConnect</h2>
-          <p class="text-xl text-blue-100">Découvrez les meilleures boutiques et produits de votre centre commercial</p>
-        </div>
-      </div>
+      <!-- Hero Section with Banner -->
+      <app-banner 
+        imageUrl="assets/images/banner.jpg"
+        height="24rem"
+        [overlayOpacity]="0.35">
+      </app-banner>
 
       <!-- Main Content -->
       <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
