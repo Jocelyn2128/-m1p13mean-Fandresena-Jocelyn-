@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const Store = require('../models/Store');
+const mongoose = require('mongoose');
 
 // Middleware to verify JWT
 const authMiddleware = (req, res, next) => {
@@ -59,12 +60,44 @@ router.get('/', async (req, res) => {
   }
 });
 
+// @route   GET /api/stores/pending
+// @desc    Get all pending stores
+// @access  Private (Admin)
+router.get('/pending/all', async (req, res) => {
+  try {
+    const stores = await Store.find({ status: 'pending_approval', isApproved: false })
+      .populate('ownerId', 'firstName lastName email phone createdAt')
+      .sort({ createdAt: -1 });
+
+    res.json({
+      success: true,
+      count: stores.length,
+      data: stores
+    });
+  } catch (error) {
+    console.error('Get pending stores error:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Server error' 
+    });
+  }
+});
+
 // @route   GET /api/stores/:id
 // @desc    Get store by ID
 // @access  Public
 router.get('/:id', async (req, res) => {
   try {
-    const store = await Store.findById(req.params.id)
+    const { id } = req.params;
+    
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Invalid store ID' 
+      });
+    }
+    
+    const store = await Store.findById(id)
       .populate('ownerId', 'firstName lastName email phone');
 
     if (!store) {
@@ -112,29 +145,6 @@ router.post('/', authMiddleware, async (req, res) => {
     });
   } catch (error) {
     console.error('Create store error:', error);
-    res.status(500).json({ 
-      success: false, 
-      message: 'Server error' 
-    });
-  }
-});
-
-// @route   GET /api/stores/pending
-// @desc    Get all pending stores
-// @access  Private (Admin)
-router.get('/pending/all', async (req, res) => {
-  try {
-    const stores = await Store.find({ status: 'pending_approval', isApproved: false })
-      .populate('ownerId', 'firstName lastName email phone createdAt')
-      .sort({ createdAt: -1 });
-
-    res.json({
-      success: true,
-      count: stores.length,
-      data: stores
-    });
-  } catch (error) {
-    console.error('Get pending stores error:', error);
     res.status(500).json({ 
       success: false, 
       message: 'Server error' 

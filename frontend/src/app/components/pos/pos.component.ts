@@ -25,6 +25,25 @@ interface PaymentMethod {
   amount: number;
 }
 
+interface OnlineOrder {
+  _id: string;
+  receiptNumber: string;
+  status: string;
+  orderType: string;
+  totalAmount: number;
+  createdAt: string;
+  buyerId?: {
+    firstName: string;
+    lastName: string;
+    phone: string;
+  };
+  items: {
+    name: string;
+    quantity: number;
+    subTotal: number;
+  }[];
+}
+
 @Component({
   selector: 'app-pos',
   standalone: true,
@@ -211,6 +230,73 @@ interface PaymentMethod {
         </div>
       </div>
     </div>
+
+    <!-- Online Orders Section -->
+    <div class="p-8 pt-0">
+      <div class="mb-8">
+        <div class="flex justify-between items-center mb-4">
+          <h3 class="text-lg font-semibold text-gray-800">
+            <i class="fas fa-shopping-bag mr-2 text-blue-600"></i>
+            Commandes en ligne à préparer
+          </h3>
+          <button (click)="loadOnlineOrders()" class="text-sm text-blue-600 hover:text-blue-800">
+            <i class="fas fa-sync-alt mr-1"></i>Actualiser
+          </button>
+        </div>
+
+        <div *ngIf="loadingOnlineOrders" class="text-center py-4">
+          <i class="fas fa-spinner fa-spin text-blue-500"></i>
+        </div>
+
+        <div *ngIf="!loadingOnlineOrders && onlineOrders.length === 0" class="bg-gray-50 rounded-lg p-6 text-center">
+          <i class="fas fa-check-circle text-4xl text-green-500 mb-2"></i>
+          <p class="text-gray-500">Aucune commande en attente</p>
+        </div>
+
+        <div *ngIf="!loadingOnlineOrders && onlineOrders.length > 0" class="space-y-3">
+          <div *ngFor="let order of onlineOrders" class="mall-card p-4">
+            <div class="flex justify-between items-start mb-3">
+              <div>
+                <span class="font-mono font-bold text-sm">{{ order.receiptNumber }}</span>
+                <span class="ml-2 text-xs" [class]="order.status === 'paye' ? 'bg-yellow-100 text-yellow-800' : order.status === 'pret_pour_retrait' ? 'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800'">
+                  {{ order.status === 'paye' ? 'À préparer' : order.status === 'pret_pour_retrait' ? 'Prête' : order.status }}
+                </span>
+                <p class="text-xs text-gray-500 mt-1">
+                  {{ order.createdAt | date:'dd/MM/yyyy HH:mm' }}
+                  <span *ngIf="order.buyerId"> • {{ order.buyerId.firstName }} {{ order.buyerId.lastName }}</span>
+                  <span *ngIf="order.buyerId?.phone"> ({{ order.buyerId?.phone }})</span>
+                </p>
+              </div>
+              <span class="font-bold text-lg">{{ order.totalAmount | number }} MGA</span>
+            </div>
+            
+            <div class="border-t pt-2 mb-3">
+              <div *ngFor="let item of order.items" class="flex justify-between text-sm py-1">
+                <span>{{ item.name }} x{{ item.quantity }}</span>
+                <span class="text-gray-600">{{ item.subTotal | number }} MGA</span>
+              </div>
+            </div>
+
+            <div class="flex space-x-2">
+              <button 
+                *ngIf="order.status === 'paye'"
+                (click)="updateOrderStatus(order._id, 'pret_pour_retrait')"
+                class="flex-1 bg-blue-600 text-white py-2 rounded-lg text-sm hover:bg-blue-700"
+              >
+                <i class="fas fa-check mr-1"></i>Marquer comme prête
+              </button>
+              <button 
+                *ngIf="order.status === 'pret_pour_retrait'"
+                (click)="updateOrderStatus(order._id, 'retire')"
+                class="flex-1 bg-green-600 text-white py-2 rounded-lg text-sm hover:bg-green-700"
+              >
+                <i class="fas fa-hand-holding mr-1"></i>Remise client
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
   `,
   styles: [``]
 })
@@ -225,6 +311,8 @@ export class PosComponent implements OnInit {
   loading = false;
   errorMessage: string | null = null;
   searchQuery = '';
+  onlineOrders: OnlineOrder[] = [];
+  loadingOnlineOrders = false;
 
   constructor(
     private http: HttpClient,
@@ -241,6 +329,39 @@ export class PosComponent implements OnInit {
         this.loadStore();
         this.loadProducts();
         this.loadCashiers();
+        this.loadOnlineOrders();
+      }
+    });
+  }
+
+  loadOnlineOrders(): void {
+    this.loadingOnlineOrders = true;
+    this.http.get(`${environment.apiUrl}/orders?storeId=${this.storeId}&orderType=COMMANDE_LIGNE`).subscribe({
+      next: (response: any) => {
+        if (response.success) {
+          this.onlineOrders = response.data;
+        }
+        this.loadingOnlineOrders = false;
+      },
+      error: (error) => {
+        console.error('Error loading online orders:', error);
+        this.loadingOnlineOrders = false;
+      }
+    });
+  }
+
+  updateOrderStatus(orderId: string, newStatus: string): void {
+    this.http.put(`${environment.apiUrl}/orders/${orderId}/status`, { status: newStatus }).subscribe({
+      next: (response: any) => {
+        if (response.success) {
+          const order = this.onlineOrders.find(o => o._id === orderId);
+          if (order) {
+            order.status = newStatus;
+          }
+        }
+      },
+      error: (error) => {
+        console.error('Error updating order status:', error);
       }
     });
   }

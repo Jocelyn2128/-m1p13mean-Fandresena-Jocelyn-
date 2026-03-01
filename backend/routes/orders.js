@@ -53,6 +53,119 @@ router.get('/', async (req, res) => {
   }
 });
 
+// @route   GET /api/orders/stats
+// @desc    Get global statistics for Admin dashboard
+// @access  Private (Admin)
+router.get('/stats', async (req, res) => {
+  try {
+    const { period = '30' } = req.query;
+    const daysBack = parseInt(period) || 30;
+    const since = new Date();
+    since.setDate(since.getDate() - daysBack);
+
+    const kpiAgg = await Order.aggregate([
+      { $match: { status: { $in: ['paye', 'retire'] } } },
+      {
+        $group: {
+          _id: null,
+          totalRevenue: { $sum: '$paidAmount' },
+          totalOrders: { $sum: 1 },
+          totalRefunds: {
+            $sum: { $cond: [{ $eq: ['$status', 'rembourse'] }, 1, 0] }
+          }
+        }
+      }
+    ]);
+
+    const kpi = kpiAgg[0] || { totalRevenue: 0, totalOrders: 0, totalRefunds: 0 };
+
+    const revenueByDay = await Order.aggregate([
+      { $match: { status: { $in: ['paye', 'retire'] }, createdAt: { $gte: since } } },
+      {
+        $group: {
+          _id: { $dateToString: { format: '%Y-%m-%d', date: '$createdAt' } },
+          revenue: { $sum: '$paidAmount' },
+          orders: { $sum: 1 }
+        }
+      },
+      { $sort: { _id: 1 } }
+    ]);
+
+    const topStores = await Order.aggregate([
+      { $match: { status: { $in: ['paye', 'retire'] }, createdAt: { $gte: since } } },
+      { $group: { _id: '$storeId', revenue: { $sum: '$paidAmount' }, orders: { $sum: 1 } } },
+      { $sort: { revenue: -1 } },
+      { $limit: 10 },
+      {
+        $lookup: {
+          from: 'stores',
+          localField: '_id',
+          foreignField: '_id',
+          as: 'store'
+        }
+      },
+      { $unwind: '$store' },
+      { $project: { storeName: '$store.name', revenue: 1, orders: 1 } }
+    ]);
+
+    const recentOrders = await Order.find({ status: { $in: ['paye', 'retire'] } })
+      .populate('storeId', 'name')
+      .populate('buyerId', 'firstName lastName')
+      .sort({ createdAt: -1 })
+      .limit(10);
+
+    res.json({
+      success: true,
+      data: {
+        kpi,
+        revenueByDay,
+        topStores,
+        recentOrders
+      }
+    });
+  } catch (error) {
+    console.error('Get stats error:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
+
+// @route   GET /api/orders/my-orders
+// @desc    Get orders for a specific buyer
+// @access  Private (Acheteur)
+router.get('/my-orders', async (req, res) => {
+  try {
+    const { buyerId, status, page = 1, limit = 20 } = req.query;
+
+    if (!buyerId) {
+      return res.status(400).json({ success: false, message: 'buyerId is required' });
+    }
+
+    const filter = { buyerId };
+    if (status) filter.status = status;
+
+    const orders = await Order.find(filter)
+      .populate('storeId', 'name location')
+      .populate('items.productId', 'images name')
+      .limit(limit * 1)
+      .skip((page - 1) * limit)
+      .sort({ createdAt: -1 });
+
+    const count = await Order.countDocuments(filter);
+
+    res.json({
+      success: true,
+      count: orders.length,
+      total: count,
+      totalPages: Math.ceil(count / limit),
+      currentPage: Number(page),
+      data: orders
+    });
+  } catch (error) {
+    console.error('My orders error:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
+
 // @route   GET /api/orders/:id
 // @desc    Get order by ID
 // @access  Private
@@ -753,211 +866,6 @@ router.post('/online', async (req, res) => {
     });
   } catch (error) {
     console.error('Online order error:', error);
-    res.status(500).json({ success: false, message: 'Server error' });
-  }
-});
-
-// @route   GET /api/orders/my-orders
-// @desc    Get orders for a specific buyer
-// @access  Private (Acheteur)
-router.get('/my-orders', async (req, res) => {
-  try {
-    const { buyerId, status, page = 1, limit = 20 } = req.query;
-
-    if (!buyerId) {
-      return res.status(400).json({ success: false, message: 'buyerId is required' });
-    }
-
-    const filter = { buyerId };
-    if (status) filter.status = status;
-
-    const orders = await Order.find(filter)
-      .populate('storeId', 'name location')
-      .populate('items.productId', 'images name')
-      .limit(limit * 1)
-      .skip((page - 1) * limit)
-      .sort({ createdAt: -1 });
-
-    const count = await Order.countDocuments(filter);
-
-    res.json({
-      success: true,
-      count: orders.length,
-      total: count,
-      totalPages: Math.ceil(count / limit),
-      currentPage: Number(page),
-      data: orders
-    });
-  } catch (error) {
-    console.error('My orders error:', error);
-    res.status(500).json({ success: false, message: 'Server error' });
-  }
-});
-
-// @route   GET /api/orders/stats
-// @desc    Get global statistics for Admin dashboard
-// @access  Private (Admin)
-router.get('/stats', async (req, res) => {
-  try {
-    const { period = '30' } = req.query;
-    const daysBack = parseInt(period) || 30;
-    const since = new Date();
-    since.setDate(since.getDate() - daysBack);
-
-    // ─── KPI Totaux ───────────────────────────────────────────────────
-    const kpiAgg = await Order.aggregate([
-      { $match: { status: { $in: ['paye', 'retire'] } } },
-      {
-        $group: {
-          _id: null,
-          totalRevenue: { $sum: '$paidAmount' },
-          totalOrders: { $sum: 1 },
-          avgOrderValue: { $avg: '$paidAmount' }
-        }
-      }
-    ]);
-
-    const kpi = kpiAgg[0] || { totalRevenue: 0, totalOrders: 0, avgOrderValue: 0 };
-
-    // Count unique buyers
-    const uniqueBuyers = await Order.distinct('buyerId', { buyerId: { $ne: null } });
-
-    // ─── Revenus par jour (30 derniers jours) ─────────────────────────
-    const dailyRevenue = await Order.aggregate([
-      {
-        $match: {
-          status: { $in: ['paye', 'retire'] },
-          createdAt: { $gte: since }
-        }
-      },
-      {
-        $group: {
-          _id: {
-            year: { $year: '$createdAt' },
-            month: { $month: '$createdAt' },
-            day: { $dayOfMonth: '$createdAt' }
-          },
-          revenue: { $sum: '$paidAmount' },
-          orders: { $sum: 1 }
-        }
-      },
-      { $sort: { '_id.year': 1, '_id.month': 1, '_id.day': 1 } }
-    ]);
-
-    // Fill missing days with 0
-    const dailyMap = {};
-    dailyRevenue.forEach(d => {
-      const dateStr = `${d._id.year}-${String(d._id.month).padStart(2, '0')}-${String(d._id.day).padStart(2, '0')}`;
-      dailyMap[dateStr] = { revenue: d.revenue, orders: d.orders };
-    });
-
-    const dailyLabels = [];
-    const dailyValues = [];
-    const dailyOrderCounts = [];
-    for (let i = daysBack - 1; i >= 0; i--) {
-      const d = new Date();
-      d.setDate(d.getDate() - i);
-      const label = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-      dailyLabels.push(label);
-      dailyValues.push(dailyMap[label]?.revenue || 0);
-      dailyOrderCounts.push(dailyMap[label]?.orders || 0);
-    }
-
-    // ─── Top 5 boutiques par revenus ──────────────────────────────────
-    const topStores = await Order.aggregate([
-      { $match: { status: { $in: ['paye', 'retire'] } } },
-      {
-        $group: {
-          _id: '$storeId',
-          revenue: { $sum: '$paidAmount' },
-          orders: { $sum: 1 }
-        }
-      },
-      { $sort: { revenue: -1 } },
-      { $limit: 5 },
-      {
-        $lookup: {
-          from: 'stores',
-          localField: '_id',
-          foreignField: '_id',
-          as: 'store'
-        }
-      },
-      { $unwind: { path: '$store', preserveNullAndEmpty: true } },
-      {
-        $project: {
-          storeName: { $ifNull: ['$store.name', 'Boutique inconnue'] },
-          revenue: 1,
-          orders: 1
-        }
-      }
-    ]);
-
-    // ─── Top 5 produits les plus vendus ───────────────────────────────
-    const topProducts = await Order.aggregate([
-      { $match: { status: { $in: ['paye', 'retire'] } } },
-      { $unwind: '$items' },
-      {
-        $group: {
-          _id: '$items.productId',
-          productName: { $first: '$items.name' },
-          totalQuantity: { $sum: '$items.quantity' },
-          totalRevenue: { $sum: '$items.subTotal' }
-        }
-      },
-      { $sort: { totalQuantity: -1 } },
-      { $limit: 10 }
-    ]);
-
-    // ─── Répartition par statut ───────────────────────────────────────
-    const statusDistribution = await Order.aggregate([
-      {
-        $group: {
-          _id: '$status',
-          count: { $sum: 1 }
-        }
-      }
-    ]);
-
-    // ─── Répartition par type de commande ─────────────────────────────
-    const typeDistribution = await Order.aggregate([
-      {
-        $group: {
-          _id: '$orderType',
-          count: { $sum: 1 },
-          revenue: { $sum: '$paidAmount' }
-        }
-      }
-    ]);
-
-    res.json({
-      success: true,
-      data: {
-        kpi: {
-          totalRevenue: kpi.totalRevenue,
-          totalOrders: kpi.totalOrders,
-          avgOrderValue: Math.round(kpi.avgOrderValue),
-          uniqueBuyers: uniqueBuyers.length
-        },
-        charts: {
-          dailyRevenue: {
-            labels: dailyLabels,
-            revenues: dailyValues,
-            orders: dailyOrderCounts
-          },
-          topStores: topStores.map(s => ({
-            name: s.storeName,
-            revenue: s.revenue,
-            orders: s.orders
-          })),
-          topProducts,
-          statusDistribution,
-          typeDistribution
-        }
-      }
-    });
-  } catch (error) {
-    console.error('Stats error:', error);
     res.status(500).json({ success: false, message: 'Server error' });
   }
 });

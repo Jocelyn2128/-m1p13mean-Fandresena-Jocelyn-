@@ -301,3 +301,6 @@ ng build --watch   # Watch mode
 
 - Repository: https://github.com/Jocelyn2128/mean-project-m1-p13
 - Branches: dev, preprod, main
+
+
+mongodb+srv://mongo:<db_password>@mallconnect.p77qe8a.mongodb.net/?appName=mallConnect
