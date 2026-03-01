@@ -1,5 +1,5 @@
 export const environment = {
   production: true,
-  apiUrl: 'http://localhost:5000/api',
+  apiUrl: 'https://m1p13mean-fandresena-jocelyn.onrender.com/api',
   appName: 'MallConnect'
 };

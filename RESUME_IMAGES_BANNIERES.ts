@@ -132,21 +132,21 @@ class ImageUtilities {
   // 1. Obtenir URL image produit
   getProductImageUrl(product: any): string {
     return product?.image 
-      ? `http://localhost:5000/uploads/${product.image}`
+      ? `https://m1p13mean-fandresena-jocelyn.onrender.com/uploads/${product.image}`
       : 'assets/images/placeholder-product.svg';
   }
 
   // 2. Obtenir URL logo boutique
   getStoreLogoUrl(store: any): string {
     return store?.logo 
-      ? `http://localhost:5000/uploads/${store.logo}`
+      ? `https://m1p13mean-fandresena-jocelyn.onrender.com/uploads/${store.logo}`
       : 'assets/images/default-store-logo.svg';
   }
 
   // 3. Obtenir URL couverture boutique
   getStoreCoverUrl(store: any): string {
     return store?.coverImage 
-      ? `http://localhost:5000/uploads/${store.coverImage}`
+      ? `https://m1p13mean-fandresena-jocelyn.onrender.com/uploads/${store.coverImage}`
       : 'assets/images/default-store-cover.svg';
   }
 
@@ -158,7 +158,7 @@ class ImageUtilities {
 
   // 5. Générer URL upload
   getUploadUrl(filename: string): string {
-    return `http://localhost:5000/uploads/${filename}`;
+    return `https://m1p13mean-fandresena-jocelyn.onrender.com/uploads/${filename}`;
   }
 
   // 6. Validation format

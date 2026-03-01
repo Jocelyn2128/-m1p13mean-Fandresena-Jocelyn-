@@ -37,7 +37,7 @@ export class ProductGridComponent {
 
   getProductImageUrl(product: any): string {
     return product?.image 
-      ? `http://localhost:5000/uploads/${product.image}`
+      ? `https://m1p13mean-fandresena-jocelyn.onrender.com/uploads/${product.image}`
       : 'assets/images/placeholder-product.png';
   }
 
@@ -74,13 +74,13 @@ export class StoreDetailComponent {
 
   get storeLogoUrl(): string {
     return this.store?.logo 
-      ? `http://localhost:5000/uploads/${this.store.logo}`
+      ? `https://m1p13mean-fandresena-jocelyn.onrender.com/uploads/${this.store.logo}`
       : 'assets/images/default-store-logo.png';
   }
 
   get storeImageUrl(): string {
     return this.store?.coverImage 
-      ? `http://localhost:5000/uploads/${this.store.coverImage}`
+      ? `https://m1p13mean-fandresena-jocelyn.onrender.com/uploads/${this.store.coverImage}`
       : 'assets/images/default-store-cover.jpg';
   }
 }

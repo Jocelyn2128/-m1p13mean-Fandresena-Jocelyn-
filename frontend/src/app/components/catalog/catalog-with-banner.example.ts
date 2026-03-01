@@ -184,7 +184,7 @@ export class CatalogWithBannerComponent implements OnInit {
    */
   getProductImageUrl(product: any): string {
     return product?.image 
-      ? `http://localhost:5000/uploads/${product.image}`
+      ? `https://m1p13mean-fandresena-jocelyn.onrender.com/uploads/${product.image}`
       : 'assets/images/placeholder-product.png';
   }
 
@@ -193,7 +193,7 @@ export class CatalogWithBannerComponent implements OnInit {
    */
   getStoreLogoUrl(store: any): string {
     return store?.logo 
-      ? `http://localhost:5000/uploads/${store.logo}`
+      ? `https://m1p13mean-fandresena-jocelyn.onrender.com/uploads/${store.logo}`
       : 'assets/images/default-store-logo.png';
   }
 
@@ -202,7 +202,7 @@ export class CatalogWithBannerComponent implements OnInit {
    */
   getStoreCoverUrl(store: any): string {
     return store?.coverImage 
-      ? `http://localhost:5000/uploads/${store.coverImage}`
+      ? `https://m1p13mean-fandresena-jocelyn.onrender.com/uploads/${store.coverImage}`
       : 'assets/images/default-store-cover.jpg';
   }
 
