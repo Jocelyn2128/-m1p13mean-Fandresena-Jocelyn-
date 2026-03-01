@@ -15,6 +15,11 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use('/uploads', express.static('uploads'));
 
+// Health check
+app.get('/api/health', (req, res) => {
+  res.status(200).json({ status: 'OK' });
+});
+
 // Routes
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/auth', require('./routes/passwordReset'));
