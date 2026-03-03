@@ -7,10 +7,10 @@ import { OrderService } from '../../services/order.service';
 import { AuthService } from '../../services/auth.service';
 
 @Component({
-    selector: 'app-checkout',
-    standalone: true,
-    imports: [CommonModule, RouterModule, FormsModule],
-    template: `
+  selector: 'app-checkout',
+  standalone: true,
+  imports: [CommonModule, RouterModule, FormsModule],
+  template: `
     <div class="min-h-screen bg-gray-50">
       <!-- Header -->
       <header class="bg-white shadow-sm">
@@ -89,14 +89,15 @@ import { AuthService } from '../../services/auth.service';
                 <label
                   *ngFor="let method of paymentMethods"
                   class="flex items-center space-x-3 p-4 rounded-xl border-2 cursor-pointer transition-all"
-                  [class.border-blue-500]="selectedPaymentMethod === method.value"
-                  [class.bg-blue-50]="selectedPaymentMethod === method.value"
-                  [class.border-gray-200]="selectedPaymentMethod !== method.value"
+                  [class.border-blue-500]="selectedRegisterId === method.value"
+                  [class.bg-blue-50]="selectedRegisterId === method.value"
+                  [class.border-gray-200]="selectedRegisterId !== method.value"
                 >
                   <input
                     type="radio"
                     [value]="method.value"
-                    [(ngModel)]="selectedPaymentMethod"
+                    [ngModel]="selectedRegisterId"
+                    (ngModelChange)="onMethodSelect(method)"
                     name="paymentMethod"
                     class="text-blue-600"
                   >
@@ -182,86 +183,133 @@ import { AuthService } from '../../services/auth.service';
   `
 })
 export class CheckoutComponent implements OnInit {
-    cartItems: CartItem[] = [];
-    total = 0;
-    selectedPaymentMethod = '';
-    notes = '';
-    isLoading = false;
-    errorMessage = '';
-    currentUser: any = null;
+  cartItems: CartItem[] = [];
+  total = 0;
+  availableRegisters: any[] = [];
+  selectedRegisterId = '';
+  selectedPaymentMethod = '';
+  notes = '';
+  isLoading = false;
+  errorMessage = '';
+  currentUser: any = null;
+  paymentMethods: any[] = [];
 
-    paymentMethods = [
-        { value: 'MVola', label: 'MVola', icon: 'fas fa-mobile-alt', color: '#E53E3E', desc: 'Paiement mobile' },
-        { value: 'Orange Money', label: 'Orange Money', icon: 'fas fa-phone', color: '#ED8936', desc: 'Paiement mobile' },
-        { value: 'Airtel Money', label: 'Airtel Money', icon: 'fas fa-sim-card', color: '#E53E3E', desc: 'Paiement mobile' },
-        { value: 'Carte Bancaire', label: 'Carte Bancaire', icon: 'fas fa-credit-card', color: '#4299E1', desc: 'Visa / Mastercard' },
-        { value: 'Espèces', label: 'Espèces', icon: 'fas fa-money-bill', color: '#48BB78', desc: 'Payer à la boutique' },
-    ];
+  constructor(
+    private cartService: CartService,
+    private orderService: OrderService,
+    private authService: AuthService,
+    private router: Router
+  ) { }
 
-    constructor(
-        private cartService: CartService,
-        private orderService: OrderService,
-        private authService: AuthService,
-        private router: Router
-    ) { }
+  ngOnInit(): void {
+    this.currentUser = this.authService.getCurrentUser();
+    if (!this.currentUser) {
+      this.router.navigate(['/login']);
+      return;
+    }
+    this.cartService.cartItems$.subscribe(items => {
+      this.cartItems = items;
+      this.total = this.cartService.getTotal();
 
-    ngOnInit(): void {
-        this.currentUser = this.authService.getCurrentUser();
-        if (!this.currentUser) {
-            this.router.navigate(['/login']);
-            return;
+      if (this.cartItems.length > 0 && this.availableRegisters.length === 0) {
+        const product = this.cartItems[0].product;
+        // storeId peut être une chaîne ou un objet (après populate depuis l'API)
+        const storeId = typeof product.storeId === 'string' 
+          ? product.storeId 
+          : (product.storeId as any)?._id || product.storeId;
+        this.loadOpenRegisters(storeId);
+      }
+    });
+  }
+
+  loadOpenRegisters(storeId: string): void {
+    this.orderService.getOpenRegisters(storeId).subscribe({
+      next: (res: any) => {
+        if (res.success && res.data.length > 0) {
+          this.availableRegisters = res.data;
+          this.paymentMethods = res.data.map((reg: any) => {
+            const name = reg.registerName.toLowerCase();
+            let icon = 'fas fa-cash-register';
+            let color = '#4A5568';
+            let method = 'Espèces';
+
+            if (name.includes('mvola')) { icon = 'fas fa-mobile-alt'; color = '#E53E3E'; method = 'MVola'; }
+            else if (name.includes('orange')) { icon = 'fas fa-phone'; color = '#ED8936'; method = 'Orange Money'; }
+            else if (name.includes('airtel')) { icon = 'fas fa-sim-card'; color = '#E53E3E'; method = 'Airtel Money'; }
+            else if (name.includes('carte') || name.includes('visa') || name.includes('mastercard')) { icon = 'fas fa-credit-card'; color = '#4299E1'; method = 'Carte Bancaire'; }
+            else if (name.includes('espèce') || name.includes('cash')) { icon = 'fas fa-money-bill'; color = '#48BB78'; method = 'Espèces'; }
+
+            return {
+              value: reg._id,
+              method: method,
+              label: reg.registerName,
+              icon,
+              color,
+              desc: `Payer via ${reg.registerName}`
+            };
+          });
+        } else {
+          this.paymentMethods = [];
+          this.errorMessage = "Cette boutique n'a aucune caisse ouverte. Vous ne pouvez pas commander pour le moment.";
         }
-        this.cartService.cartItems$.subscribe(items => {
-            this.cartItems = items;
-            this.total = this.cartService.getTotal();
-        });
-    }
+      }
+    });
+  }
 
-    getItemPrice(item: CartItem): number {
-        const p = item.product;
-        return (p.promotion?.isOnSale && p.promotion.discountPrice) ? p.promotion.discountPrice : p.price;
-    }
+  onMethodSelect(method: any): void {
+    this.selectedRegisterId = method.value;
+    this.selectedPaymentMethod = method.method;
+  }
 
-    getItemSubtotal(item: CartItem): number {
-        return this.getItemPrice(item) * item.quantity;
-    }
+  getItemPrice(item: CartItem): number {
+    const p = item.product;
+    return (p.promotion?.isOnSale && p.promotion.discountPrice) ? p.promotion.discountPrice : p.price;
+  }
 
-    goBack(): void {
-        this.router.navigate(['/cart']);
-    }
+  getItemSubtotal(item: CartItem): number {
+    return this.getItemPrice(item) * item.quantity;
+  }
 
-    placeOrder(): void {
-        if (!this.selectedPaymentMethod || this.cartItems.length === 0) return;
+  goBack(): void {
+    this.router.navigate(['/cart']);
+  }
 
-        this.isLoading = true;
-        this.errorMessage = '';
+  placeOrder(): void {
+    if (!this.selectedRegisterId || this.cartItems.length === 0) return;
 
-        // Group items by storeId (use first store if multiple)
-        const storeId = (this.cartItems[0].product as any).storeId;
+    this.isLoading = true;
+    this.errorMessage = '';
 
-        const orderData = {
-            storeId,
-            buyerId: this.currentUser?.id || this.currentUser?._id,
-            items: this.cartItems.map(item => ({
-                productId: item.product._id!,
-                quantity: item.quantity
-            })),
-            paymentMethod: this.selectedPaymentMethod,
-            notes: this.notes
-        };
+    // Group items by storeId (use first store if multiple)
+    const product = this.cartItems[0].product;
+    const storeId = typeof product.storeId === 'string' 
+      ? product.storeId 
+      : (product.storeId as any)?._id || product.storeId;
 
-        this.orderService.createOnlineOrder(orderData).subscribe({
-            next: (response: any) => {
-                this.isLoading = false;
-                if (response.success) {
-                    this.cartService.clearCart();
-                    this.router.navigate(['/order-confirmation', response.data._id]);
-                }
-            },
-            error: (error: any) => {
-                this.isLoading = false;
-                this.errorMessage = error.error?.message || 'Erreur lors de la commande. Veuillez réessayer.';
-            }
-        });
-    }
+    const orderData = {
+      storeId,
+      buyerId: this.currentUser?.id || this.currentUser?._id,
+      items: this.cartItems.map(item => ({
+        productId: item.product._id!,
+        quantity: item.quantity
+      })),
+      paymentMethod: this.selectedPaymentMethod,
+      cashRegisterId: this.selectedRegisterId,
+      notes: this.notes
+    };
+
+    this.orderService.createOnlineOrder(orderData).subscribe({
+      next: (response: any) => {
+        this.isLoading = false;
+        if (response.success) {
+          this.cartService.clearCart();
+          this.router.navigate(['/order-confirmation', response.data._id]);
+        }
+      },
+      error: (error: any) => {
+        this.isLoading = false;
+        this.errorMessage = error.error?.message || 'Erreur lors de la commande. Veuillez réessayer.';
+      }
+    });
+  }
 }

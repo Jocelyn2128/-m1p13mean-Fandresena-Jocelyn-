@@ -63,5 +63,9 @@ export class OrderService {
   getReceipt(receiptNumber: string): Observable<any> {
     return this.http.get(`${this.apiUrl}/receipt/${receiptNumber}`);
   }
+
+  getOpenRegisters(storeId: string): Observable<any> {
+    return this.http.get(`${environment.apiUrl}/cash-registers?storeId=${storeId}&status=ouvert`);
+  }
 }
 

@@ -6,11 +6,11 @@ const mongoose = require('mongoose');
 // Middleware to verify JWT
 const authMiddleware = (req, res, next) => {
   const token = req.header('Authorization')?.replace('Bearer ', '');
-  
+
   if (!token) {
-    return res.status(401).json({ 
-      success: false, 
-      message: 'No token, authorization denied' 
+    return res.status(401).json({
+      success: false,
+      message: 'No token, authorization denied'
     });
   }
 
@@ -20,9 +20,9 @@ const authMiddleware = (req, res, next) => {
     req.user = decoded;
     next();
   } catch (error) {
-    res.status(401).json({ 
-      success: false, 
-      message: 'Token is not valid' 
+    res.status(401).json({
+      success: false,
+      message: 'Token is not valid'
     });
   }
 };
@@ -34,7 +34,7 @@ router.get('/', async (req, res) => {
   try {
     const { category, floor, status, search } = req.query;
     const filter = { isApproved: true };
-    
+
     if (category) filter.category = category;
     if (floor) filter['location.floor'] = floor;
     if (status) filter.status = status;
@@ -53,14 +53,33 @@ router.get('/', async (req, res) => {
     });
   } catch (error) {
     console.error('Get stores error:', error);
-    res.status(500).json({ 
-      success: false, 
-      message: 'Server error' 
+    res.status(500).json({
+      success: false,
+      message: 'Server error'
     });
   }
 });
 
-// @route   GET /api/stores/pending
+// @route   GET /api/stores/my/stores
+// @desc    Get stores owned by the authenticated user (all statuses)
+// @access  Private (Boutique)
+router.get('/my/stores', authMiddleware, async (req, res) => {
+  try {
+    const stores = await Store.find({ ownerId: req.user.userId })
+      .sort({ createdAt: -1 });
+
+    res.json({
+      success: true,
+      count: stores.length,
+      data: stores
+    });
+  } catch (error) {
+    console.error('Get my stores error:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
+
+// @route   GET /api/stores/pending/all
 // @desc    Get all pending stores
 // @access  Private (Admin)
 router.get('/pending/all', async (req, res) => {
@@ -76,9 +95,9 @@ router.get('/pending/all', async (req, res) => {
     });
   } catch (error) {
     console.error('Get pending stores error:', error);
-    res.status(500).json({ 
-      success: false, 
-      message: 'Server error' 
+    res.status(500).json({
+      success: false,
+      message: 'Server error'
     });
   }
 });
@@ -89,21 +108,21 @@ router.get('/pending/all', async (req, res) => {
 router.get('/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    
+
     if (!mongoose.Types.ObjectId.isValid(id)) {
-      return res.status(400).json({ 
-        success: false, 
-        message: 'Invalid store ID' 
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid store ID'
       });
     }
-    
+
     const store = await Store.findById(id)
       .populate('ownerId', 'firstName lastName email phone');
 
     if (!store) {
-      return res.status(404).json({ 
-        success: false, 
-        message: 'Store not found' 
+      return res.status(404).json({
+        success: false,
+        message: 'Store not found'
       });
     }
 
@@ -117,9 +136,9 @@ router.get('/:id', async (req, res) => {
     });
   } catch (error) {
     console.error('Get store error:', error);
-    res.status(500).json({ 
-      success: false, 
-      message: 'Server error' 
+    res.status(500).json({
+      success: false,
+      message: 'Server error'
     });
   }
 });
@@ -145,9 +164,9 @@ router.post('/', authMiddleware, async (req, res) => {
     });
   } catch (error) {
     console.error('Create store error:', error);
-    res.status(500).json({ 
-      success: false, 
-      message: 'Server error' 
+    res.status(500).json({
+      success: false,
+      message: 'Server error'
     });
   }
 });
@@ -158,11 +177,11 @@ router.post('/', authMiddleware, async (req, res) => {
 router.put('/:id/approve', async (req, res) => {
   try {
     const store = await Store.findById(req.params.id);
-    
+
     if (!store) {
-      return res.status(404).json({ 
-        success: false, 
-        message: 'Store not found' 
+      return res.status(404).json({
+        success: false,
+        message: 'Store not found'
       });
     }
 
@@ -182,9 +201,9 @@ router.put('/:id/approve', async (req, res) => {
     });
   } catch (error) {
     console.error('Approve store error:', error);
-    res.status(500).json({ 
-      success: false, 
-      message: 'Server error' 
+    res.status(500).json({
+      success: false,
+      message: 'Server error'
     });
   }
 });
@@ -195,11 +214,11 @@ router.put('/:id/approve', async (req, res) => {
 router.put('/:id/reject', async (req, res) => {
   try {
     const store = await Store.findById(req.params.id);
-    
+
     if (!store) {
-      return res.status(404).json({ 
-        success: false, 
-        message: 'Store not found' 
+      return res.status(404).json({
+        success: false,
+        message: 'Store not found'
       });
     }
 
@@ -215,10 +234,51 @@ router.put('/:id/reject', async (req, res) => {
     });
   } catch (error) {
     console.error('Reject store error:', error);
-    res.status(500).json({ 
-      success: false, 
-      message: 'Server error' 
+    res.status(500).json({
+      success: false,
+      message: 'Server error'
     });
+  }
+});
+
+// @route   PUT /api/stores/:id
+// @desc    Update store details
+// @access  Private (Boutique owner or Admin)
+router.put('/:id', authMiddleware, async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ success: false, message: 'Invalid store ID' });
+    }
+
+    const store = await Store.findById(id);
+    if (!store) {
+      return res.status(404).json({ success: false, message: 'Store not found' });
+    }
+
+    // Seul le propriétaire ou un admin peut modifier
+    if (req.user.role !== 'ADMIN_MALL' && store.ownerId.toString() !== req.user.userId) {
+      return res.status(403).json({ success: false, message: 'Accès refusé' });
+    }
+
+    // Ne pas permettre de changer ownerId, status ou isApproved via cette route
+    const { ownerId, status, isApproved, ...updateData } = req.body;
+
+    const updatedStore = await Store.findByIdAndUpdate(
+      id,
+      { ...updateData, updatedAt: Date.now() },
+      { new: true, runValidators: false }
+    );
+
+    res.json({
+      success: true,
+      message: 'Boutique mise à jour avec succès',
+      data: updatedStore
+    });
+  } catch (error) {
+    console.error('Update store error:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
   }
 });
 

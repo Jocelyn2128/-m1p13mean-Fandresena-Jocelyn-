@@ -4,10 +4,10 @@ import { Router, RouterModule, ActivatedRoute } from '@angular/router';
 import { OrderService } from '../../services/order.service';
 
 @Component({
-    selector: 'app-order-confirmation',
-    standalone: true,
-    imports: [CommonModule, RouterModule],
-    template: `
+  selector: 'app-order-confirmation',
+  standalone: true,
+  imports: [CommonModule, RouterModule],
+  template: `
     <div class="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50 flex items-center justify-center p-4">
       <div class="max-w-lg w-full">
         <!-- Success Animation -->
@@ -55,7 +55,7 @@ import { OrderService } from '../../services/order.service';
                 <i class="fas fa-circle mr-1 text-xs"></i>
                 {{ getStatusLabel(order.status) }}
               </span>
-              <span class="text-sm text-gray-500">via {{ order.paymentMethod }}</span>
+              <span class="text-sm text-gray-500">via {{ getPaymentLabel(order) }}</span>
             </div>
 
             <!-- Items -->
@@ -114,7 +114,7 @@ import { OrderService } from '../../services/order.service';
       </div>
     </div>
   `,
-    styles: [`
+  styles: [`
     @keyframes bounce-slow {
       0%, 100% { transform: translateY(0); }
       50% { transform: translateY(-10px); }
@@ -123,42 +123,53 @@ import { OrderService } from '../../services/order.service';
   `]
 })
 export class OrderConfirmationComponent implements OnInit {
-    order: any = null;
-    isLoading = true;
+  order: any = null;
+  isLoading = true;
 
-    constructor(
-        private route: ActivatedRoute,
-        private orderService: OrderService,
-        private router: Router
-    ) { }
+  constructor(
+    private route: ActivatedRoute,
+    private orderService: OrderService,
+    private router: Router
+  ) { }
 
-    ngOnInit(): void {
-        const orderId = this.route.snapshot.paramMap.get('id');
-        if (orderId) {
-            this.orderService.getOrder(orderId).subscribe({
-                next: (res: any) => {
-                    this.order = res.success ? res.data : null;
-                    this.isLoading = false;
-                },
-                error: () => {
-                    this.isLoading = false;
-                }
-            });
-        } else {
-            this.isLoading = false;
+  ngOnInit(): void {
+    const orderId = this.route.snapshot.paramMap.get('id');
+    if (orderId) {
+      this.orderService.getOrder(orderId).subscribe({
+        next: (res: any) => {
+          this.order = res.success ? res.data : null;
+          this.isLoading = false;
+        },
+        error: () => {
+          this.isLoading = false;
         }
+      });
+    } else {
+      this.isLoading = false;
     }
+  }
 
-    getStatusLabel(status: string): string {
-        const labels: Record<string, string> = {
-            en_attente: 'En attente',
-            paye: 'Payé',
-            acompte: 'Acompte',
-            annule: 'Annulé',
-            pret_pour_retrait: 'Prêt pour retrait',
-            retire: 'Retiré',
-            avoir: 'Avoir'
-        };
-        return labels[status] || status;
+  getStatusLabel(status: string): string {
+    const labels: Record<string, string> = {
+      en_attente: 'En attente',
+      paye: 'Payé',
+      acompte: 'Acompte',
+      annule: 'Annulé',
+      pret_pour_retrait: 'Prêt pour retrait',
+      retire: 'Retiré',
+      avoir: 'Avoir'
+    };
+    return labels[status] || status;
+  }
+
+  getPaymentLabel(order: any): string {
+    if (order && order.payments && order.payments.length > 0) {
+      const p = order.payments[0];
+      if (p.cashRegisterId && p.cashRegisterId.registerName) {
+        return p.cashRegisterId.registerName;
+      }
+      return p.cashRegisterName || order.paymentMethod;
     }
+    return order?.paymentMethod || 'Non spécifié';
+  }
 }

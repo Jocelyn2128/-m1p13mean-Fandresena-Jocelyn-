@@ -4,3 +4,4 @@ export { StoreService } from './store.service';
 export { OrderService } from './order.service';
 export { CashRegisterService } from './cash-register.service';
 export { CartService } from './cart.service';
+export { UploadService } from './upload.service';

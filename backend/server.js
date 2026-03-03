@@ -1,13 +1,19 @@
 const express = require('express');
 const cors = require('cors');
+const fs = require('fs');
 require('dotenv').config();
 
 const { connectDB } = require('./config/database');
 
 const app = express();
 
-// Connexion MongoDB Atlas
+// Connexion MongoDB
 connectDB();
+
+// Créer les dossiers uploads s'ils n'existent pas
+['uploads', 'uploads/products', 'uploads/stores'].forEach(dir => {
+  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+});
 
 // Middlewares
 app.use(cors());
@@ -17,7 +23,7 @@ app.use('/uploads', express.static('uploads'));
 
 // Health check
 app.get('/api/health', (req, res) => {
-  res.status(200).json({ status: 'OK' });
+  res.status(200).json({ status: 'OK', message: 'MallConnect API is running' });
 });
 
 // Routes
@@ -32,11 +38,7 @@ app.use('/api/cash-registers', require('./routes/cashRegisters'));
 app.use('/api/events', require('./routes/events'));
 app.use('/api/favorites', require('./routes/favorites'));
 app.use('/api/admin/reports', require('./routes/adminReports'));
-
-// Health check
-app.get('/api/health', (req, res) => {
-  res.json({ status: 'OK', message: 'MallConnect API is running' });
-});
+app.use('/api/uploads', require('./routes/uploads'));
 
 // 404 handler
 app.use((req, res) => {

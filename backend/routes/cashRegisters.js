@@ -7,16 +7,21 @@ const CashRegister = require('../models/CashRegister');
 // @access  Private (Boutique)
 router.get('/', async (req, res) => {
   try {
-    const { storeId } = req.query;
-    
+    const { storeId, status } = req.query;
+
     if (!storeId) {
-      return res.status(400).json({ 
-        success: false, 
-        message: 'Store ID is required' 
+      return res.status(400).json({
+        success: false,
+        message: 'Store ID is required'
       });
     }
 
-    const registers = await CashRegister.find({ storeId })
+    const query = { storeId };
+    if (status) {
+      query.status = status;
+    }
+
+    const registers = await CashRegister.find(query)
       .sort({ createdAt: -1 });
 
     res.json({
@@ -26,9 +31,9 @@ router.get('/', async (req, res) => {
     });
   } catch (error) {
     console.error('Get cash registers error:', error);
-    res.status(500).json({ 
-      success: false, 
-      message: 'Server error' 
+    res.status(500).json({
+      success: false,
+      message: 'Server error'
     });
   }
 });

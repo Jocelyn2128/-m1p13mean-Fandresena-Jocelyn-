@@ -29,6 +29,7 @@ router.get('/', async (req, res) => {
     const orders = await Order.find(filter)
       .populate('storeId', 'name')
       .populate('buyerId', 'firstName lastName phone')
+      .populate('payments.cashRegisterId', 'registerName')
       .populate('items.productId', 'images')
       .limit(limit * 1)
       .skip((page - 1) * limit)
@@ -146,6 +147,7 @@ router.get('/my-orders', async (req, res) => {
     const orders = await Order.find(filter)
       .populate('storeId', 'name location')
       .populate('items.productId', 'images name')
+      .populate('payments.cashRegisterId', 'registerName')
       .limit(limit * 1)
       .skip((page - 1) * limit)
       .sort({ createdAt: -1 });
@@ -174,7 +176,7 @@ router.get('/:id', async (req, res) => {
     const order = await Order.findById(req.params.id)
       .populate('storeId', 'name location')
       .populate('buyerId', 'firstName lastName phone email')
-      .populate('cashRegisterId', 'registerName')
+      .populate('payments.cashRegisterId', 'registerName')
       .populate('items.productId');
 
     if (!order) {
@@ -403,7 +405,8 @@ router.get('/receipt/:receiptNumber', async (req, res) => {
   try {
     const order = await Order.findOne({ receiptNumber: req.params.receiptNumber })
       .populate('storeId', 'name location')
-      .populate('items.productId', 'images');
+      .populate('items.productId', 'images')
+      .populate('payments.cashRegisterId', 'registerName');
 
     if (!order) {
       return res.status(404).json({
@@ -447,7 +450,10 @@ router.post('/:id/pay', async (req, res) => {
       });
     }
 
-    if (order.status !== 'acompte' && order.status !== 'en_attente') {
+    const s = (order.status || '').toLowerCase();
+    const payableStatuses = ['acompte', 'en_attente', 'validee', 'valide', 'retire', 'pret_pour_retrait'];
+
+    if (!payableStatuses.includes(s)) {
       return res.status(400).json({
         success: false,
         message: 'Order is not in a payable state'
@@ -457,10 +463,12 @@ router.post('/:id/pay', async (req, res) => {
     const remainingAmount = order.totalAmount - order.paidAmount;
     const totalPayments = payments.reduce((sum, p) => sum + (p.amount || 0), 0);
 
-    if (totalPayments > remainingAmount) {
+    // Tolerance for float issues
+    const tolerance = 1;
+    if (totalPayments > remainingAmount + tolerance) {
       return res.status(400).json({
         success: false,
-        message: `Payment exceeds remaining amount. Remaining: ${remainingAmount}, Received: ${totalPayments}`
+        message: `Le paiement (${totalPayments}) dépasse le reste à payer (${remainingAmount})`
       });
     }
 
@@ -793,7 +801,7 @@ router.post('/:id/pay-with-credit', async (req, res) => {
 // @access  Private (Acheteur)
 router.post('/online', async (req, res) => {
   try {
-    const { storeId, buyerId, items, paymentMethod, notes } = req.body;
+    const { storeId, buyerId, items, paymentMethod, notes, cashRegisterId } = req.body;
 
     if (!storeId) {
       return res.status(400).json({ success: false, message: 'storeId is required' });
@@ -843,15 +851,31 @@ router.post('/online', async (req, res) => {
     const random = Math.floor(1000 + Math.random() * 9000);
     const receiptNumber = `ONL-${timestamp}-${random}`;
 
+    // Status: Pending if cash, Paid if mobile/card
+    const isPayLater = paymentMethod === 'Espèces';
+
+    const paymentsArr = [];
+    if (!isPayLater && cashRegisterId) {
+      const register = await CashRegister.findById(cashRegisterId);
+      if (register) {
+        paymentsArr.push({
+          cashRegisterId: register._id,
+          cashRegisterName: register.registerName,
+          amount: totalAmount
+        });
+        await register.addSale(totalAmount, paymentMethod);
+      }
+    }
+
     const order = new Order({
       storeId,
       buyerId: buyerId || null,
-      payments: [],   // No cash register for online orders
+      payments: paymentsArr,
       items: orderItems,
       totalAmount,
-      paidAmount: totalAmount,  // Considered paid online
+      paidAmount: isPayLater ? 0 : totalAmount,
       orderType: 'COMMANDE_LIGNE',
-      status: 'paye',
+      status: isPayLater ? 'en_attente' : 'paye',
       paymentMethod,
       receiptNumber,
       notes

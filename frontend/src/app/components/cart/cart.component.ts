@@ -4,12 +4,13 @@ import { Router, RouterModule } from '@angular/router';
 import { Subscription } from 'rxjs';
 import { CartService, CartItem } from '../../services/cart.service';
 import { AuthService } from '../../services/auth.service';
+import { environment } from '../../../environments/environment';
 
 @Component({
-    selector: 'app-cart',
-    standalone: true,
-    imports: [CommonModule, RouterModule],
-    template: `
+  selector: 'app-cart',
+  standalone: true,
+  imports: [CommonModule, RouterModule],
+  template: `
     <div class="min-h-screen bg-gray-50">
       <!-- Header -->
       <header class="bg-white shadow-sm">
@@ -50,9 +51,15 @@ import { AuthService } from '../../services/auth.service';
               *ngFor="let item of cartItems"
               class="bg-white rounded-xl shadow-sm p-4 flex items-center space-x-4 hover:shadow-md transition-shadow"
             >
-              <!-- Product Image Placeholder -->
-              <div class="w-20 h-20 bg-gray-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                <i class="fas fa-box text-gray-300 text-2xl"></i>
+              <!-- Product Image -->
+              <div class="w-20 h-20 bg-gray-100 rounded-lg flex items-center justify-center flex-shrink-0 overflow-hidden">
+                <img 
+                  *ngIf="item.product.images && item.product.images.length > 0"
+                  [src]="getProductImageUrl(item.product.images[0])"
+                  [alt]="item.product.name"
+                  class="w-full h-full object-cover"
+                >
+                <i *ngIf="!item.product.images || item.product.images.length === 0" class="fas fa-box text-gray-300 text-2xl"></i>
               </div>
 
               <!-- Product Info -->
@@ -143,80 +150,87 @@ import { AuthService } from '../../services/auth.service';
   `
 })
 export class CartComponent implements OnInit, OnDestroy {
-    cartItems: CartItem[] = [];
-    total = 0;
-    private sub!: Subscription;
+  cartItems: CartItem[] = [];
+  total = 0;
+  private sub!: Subscription;
 
-    constructor(
-        private cartService: CartService,
-        private authService: AuthService,
-        private router: Router
-    ) { }
+  constructor(
+    private cartService: CartService,
+    private authService: AuthService,
+    private router: Router
+  ) { }
 
-    ngOnInit(): void {
-        this.sub = this.cartService.cartItems$.subscribe(items => {
-            this.cartItems = items;
-            this.total = this.cartService.getTotal();
-        });
+  ngOnInit(): void {
+    this.sub = this.cartService.cartItems$.subscribe(items => {
+      this.cartItems = items;
+      this.total = this.cartService.getTotal();
+    });
+  }
+
+  ngOnDestroy(): void {
+    this.sub?.unsubscribe();
+  }
+
+  get totalItems(): number {
+    return this.cartService.getItemCount();
+  }
+
+  get storeCount(): number {
+    const stores = new Set(this.cartItems.map(i => (i.product as any).storeId));
+    return stores.size;
+  }
+
+  get hasMultipleStores(): boolean {
+    return this.storeCount > 1;
+  }
+
+  getItemPrice(item: CartItem): number {
+    const p = item.product;
+    return (p.promotion?.isOnSale && p.promotion.discountPrice) ? p.promotion.discountPrice : p.price;
+  }
+
+  getItemSubtotal(item: CartItem): number {
+    return this.getItemPrice(item) * item.quantity;
+  }
+
+  increaseQty(item: CartItem): void {
+    this.cartService.updateQuantity(item.product._id!, item.quantity + 1);
+  }
+
+  decreaseQty(item: CartItem): void {
+    if (item.quantity > 1) {
+      this.cartService.updateQuantity(item.product._id!, item.quantity - 1);
+    } else {
+      this.removeItem(item);
     }
+  }
 
-    ngOnDestroy(): void {
-        this.sub?.unsubscribe();
-    }
+  removeItem(item: CartItem): void {
+    this.cartService.removeFromCart(item.product._id!);
+  }
 
-    get totalItems(): number {
-        return this.cartService.getItemCount();
+  clearCart(): void {
+    if (confirm('Vider le panier ?')) {
+      this.cartService.clearCart();
     }
+  }
 
-    get storeCount(): number {
-        const stores = new Set(this.cartItems.map(i => (i.product as any).storeId));
-        return stores.size;
-    }
+  goBack(): void {
+    this.router.navigate(['/catalog']);
+  }
 
-    get hasMultipleStores(): boolean {
-        return this.storeCount > 1;
+  goToCheckout(): void {
+    if (!this.authService.isAuthenticated()) {
+      this.router.navigate(['/login']);
+      return;
     }
+    this.router.navigate(['/checkout']);
+  }
 
-    getItemPrice(item: CartItem): number {
-        const p = item.product;
-        return (p.promotion?.isOnSale && p.promotion.discountPrice) ? p.promotion.discountPrice : p.price;
-    }
-
-    getItemSubtotal(item: CartItem): number {
-        return this.getItemPrice(item) * item.quantity;
-    }
-
-    increaseQty(item: CartItem): void {
-        this.cartService.updateQuantity(item.product._id!, item.quantity + 1);
-    }
-
-    decreaseQty(item: CartItem): void {
-        if (item.quantity > 1) {
-            this.cartService.updateQuantity(item.product._id!, item.quantity - 1);
-        } else {
-            this.removeItem(item);
-        }
-    }
-
-    removeItem(item: CartItem): void {
-        this.cartService.removeFromCart(item.product._id!);
-    }
-
-    clearCart(): void {
-        if (confirm('Vider le panier ?')) {
-            this.cartService.clearCart();
-        }
-    }
-
-    goBack(): void {
-        this.router.navigate(['/catalog']);
-    }
-
-    goToCheckout(): void {
-        if (!this.authService.isAuthenticated()) {
-            this.router.navigate(['/login']);
-            return;
-        }
-        this.router.navigate(['/checkout']);
-    }
+  getProductImageUrl(imagePath: string): string {
+    if (!imagePath) return '';
+    if (imagePath.startsWith('http')) return imagePath;
+    const baseUrl = environment.apiUrl.replace('/api', '');
+    return `${baseUrl}/uploads/${imagePath}`;
+  }
 }

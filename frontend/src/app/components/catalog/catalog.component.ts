@@ -347,7 +347,7 @@ import { environment } from '../../../environments/environment';
                 <p class="text-gray-500 text-sm mb-3">{{ store.category }} • {{ store.location?.floor || 'Étage' }}</p>
                 <p class="text-gray-600 text-sm mb-4 line-clamp-2">{{ store.description }}</p>
                 <div class="flex space-x-2">
-                  <button class="flex-1 btn-secondary text-sm">
+                  <button (click)="viewStoreDetail(store)" class="flex-1 btn-secondary text-sm">
                     Visiter la boutique
                   </button>
                   <button 

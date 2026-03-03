@@ -4,6 +4,8 @@ import { RouterModule, ActivatedRoute } from '@angular/router';
 import { FormsModule, FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
 import { environment } from '../../../../environments/environment';
+import { jsPDF } from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 interface Payment {
   cashRegisterId: string;
@@ -24,7 +26,7 @@ interface Order {
   totalAmount: number;
   paidAmount: number;
   remainingAmount: number;
-  status: 'paye' | 'acompte' | 'annule' | 'avoir';
+  status: string;
   payments: Payment[];
   createdAt: string;
   customerName?: string;
@@ -81,6 +83,10 @@ interface CreditNote {
               <option value="">Tous</option>
               <option value="paye">Payé</option>
               <option value="acompte">Acompte</option>
+              <option value="en_attente">En attente</option>
+              <option value="validee">Validée</option>
+              <option value="pret_pour_retrait">Prêt</option>
+              <option value="retire">Retiré / Livré</option>
               <option value="annule">Annulé</option>
               <option value="avoir">Avoir</option>
             </select>
@@ -201,7 +207,7 @@ interface CreditNote {
                           <i class="fas fa-eye mr-2"></i> Voir détails
                         </button>
                         
-                        <button *ngIf="order.status === 'acompte'" (click)="openPaymentModal(order); toggleMenu(order._id)" class="block w-full text-left px-4 py-2 text-sm text-blue-600 hover:bg-gray-100">
+                        <button *ngIf="order.remainingAmount > 0 && order.status !== 'annule'" (click)="openPaymentModal(order); toggleMenu(order._id)" class="block w-full text-left px-4 py-2 text-sm text-blue-600 hover:bg-gray-100">
                           <i class="fas fa-money-bill-wave mr-2"></i> Payer le reste
                         </button>
                         
@@ -489,22 +495,22 @@ export class SalesHistoryComponent implements OnInit {
   availableCashiers: any[] = [];
   availableCreditNotes: CreditNote[] = [];
   allCreditNotes: CreditNote[] = [];
-  
+
   // Modals
   showPaymentModal = false;
   showCancelModal = false;
   showPartialCreditModal = false;
   showCreditNotePaymentModal = false;
   showCreditNotesList = false;
-  
+
   paymentForm = {
     payments: [{ cashierId: '', amount: 0 }]
   };
-  
+
   cancelForm = {
     decaisser: false
   };
-  
+
   partialCreditForm = {
     items: [] as Array<{
       productId: string;
@@ -516,7 +522,7 @@ export class SalesHistoryComponent implements OnInit {
     }>,
     decaisser: false
   };
-  
+
   filters = {
     startDate: '',
     endDate: '',
@@ -527,7 +533,7 @@ export class SalesHistoryComponent implements OnInit {
   constructor(
     private http: HttpClient,
     private route: ActivatedRoute
-  ) {}
+  ) { }
 
   ngOnInit(): void {
     this.route.params.subscribe(params => {
@@ -538,7 +544,7 @@ export class SalesHistoryComponent implements OnInit {
         this.loadCreditNotes();
       }
     });
-    
+
     // Fermer le menu quand on clique ailleurs
     document.addEventListener('click', (e) => {
       if (!(e.target as HTMLElement).closest('.relative')) {
@@ -553,11 +559,15 @@ export class SalesHistoryComponent implements OnInit {
       next: (response: any) => {
         if (response.success) {
           // Adapter les données pour inclure paidAmount et remainingAmount
-          this.orders = response.data.map((order: any) => ({
-            ...order,
-            paidAmount: order.payments?.reduce((sum: number, p: Payment) => sum + p.amount, 0) || 0,
-            remainingAmount: order.totalAmount - (order.payments?.reduce((sum: number, p: Payment) => sum + p.amount, 0) || 0)
-          }));
+          // Utiliser paidAmount du backend comme source de vérité
+          this.orders = response.data.map((order: any) => {
+            const paid = order.paidAmount !== undefined ? order.paidAmount : (order.payments?.reduce((sum: number, p: any) => sum + p.amount, 0) || 0);
+            return {
+              ...order,
+              paidAmount: paid,
+              remainingAmount: Math.max(0, order.totalAmount - paid)
+            };
+          });
           this.applyFilters();
         }
         this.loading = false;
@@ -601,11 +611,11 @@ export class SalesHistoryComponent implements OnInit {
         endDate.setHours(23, 59, 59, 999);
         matchesDate = matchesDate && new Date(order.createdAt) <= endDate;
       }
-      
-      const matchesOrderNumber = !this.filters.orderNumber || 
-                                order.receiptNumber.toLowerCase().includes(this.filters.orderNumber.toLowerCase());
+
+      const matchesOrderNumber = !this.filters.orderNumber ||
+        order.receiptNumber.toLowerCase().includes(this.filters.orderNumber.toLowerCase());
       const matchesStatus = !this.filters.status || order.status === this.filters.status;
-      
+
       return matchesDate && matchesOrderNumber && matchesStatus;
     });
   }
@@ -623,31 +633,48 @@ export class SalesHistoryComponent implements OnInit {
   }
 
   get totalItems(): number {
-    return this.filteredOrders.reduce((sum, order) => 
+    return this.filteredOrders.reduce((sum, order) =>
       sum + order.items.reduce((itemSum, item) => itemSum + item.quantity, 0), 0);
   }
 
   getStatusBadgeClass(status: string): string {
-    switch (status) {
+    const s = (status || '').toLowerCase();
+    switch (s) {
       case 'paye':
         return 'badge badge-success';
       case 'acompte':
+      case 'en_attente':
+      case 'validee':
+      case 'valide':
         return 'badge badge-warning';
+      case 'pret_pour_retrait':
+        return 'badge badge-info';
+      case 'retire':
+        return 'badge badge-success';
       case 'annule':
-        return 'badge badge-danger';
       case 'avoir':
-        return 'badge';
+        return 'badge badge-danger';
       default:
         return 'badge';
     }
   }
 
   getStatusLabel(status: string): string {
-    switch (status) {
+    const s = (status || '').toLowerCase();
+    switch (s) {
       case 'paye':
         return 'Payé';
       case 'acompte':
         return 'Acompte';
+      case 'en_attente':
+        return 'En attente';
+      case 'validee':
+      case 'valide':
+        return 'Validée';
+      case 'pret_pour_retrait':
+        return 'Prêt pour retrait';
+      case 'retire':
+        return 'Retiré / Livré';
       case 'annule':
         return 'Annulé';
       case 'avoir':
@@ -683,11 +710,87 @@ export class SalesHistoryComponent implements OnInit {
     return (this.selectedOrder?.remainingAmount || 0) - total;
   }
 
+  printReceipt(order: Order): void {
+    const doc = new jsPDF();
+
+    // Header
+    doc.setFontSize(22);
+    doc.setTextColor(0, 102, 204);
+    doc.text('MALLCONNECT', 105, 20, { align: 'center' });
+
+    doc.setFontSize(14);
+    doc.setTextColor(100);
+    doc.text('TICKET DE CAISSE', 105, 30, { align: 'center' });
+
+    // Info
+    doc.setFontSize(10);
+    doc.setTextColor(0);
+    doc.text(`Boutique: ${this.storeId}`, 20, 45);
+    doc.text(`N° Facture: ${order.receiptNumber}`, 20, 50);
+    doc.text(`Date: ${new Date(order.createdAt).toLocaleString()}`, 20, 55);
+    doc.text(`Statut: ${this.getStatusLabel(order.status).toUpperCase()}`, 20, 60);
+
+    // Table
+    const tableData = order.items.map(item => [
+      item.name,
+      item.quantity.toString(),
+      `${item.unitPrice} Ar`,
+      `${item.subTotal} Ar`
+    ]);
+
+    autoTable(doc, {
+      head: [['Article', 'Qté', 'Prix unitaire', 'Sous-total']],
+      body: tableData,
+      startY: 70,
+      theme: 'striped',
+      headStyles: { fillColor: [0, 102, 204] }
+    });
+
+    const finalY = (doc as any).lastAutoTable.finalY + 10;
+
+    // Summary
+    doc.setFontSize(12);
+    doc.text(`Montant Total: ${order.totalAmount} Ar`, 190, finalY, { align: 'right' });
+    doc.text(`Montant Payé: ${order.paidAmount} Ar`, 190, finalY + 7, { align: 'right' });
+    doc.text(`Reste à payer: ${order.remainingAmount} Ar`, 190, finalY + 14, { align: 'right' });
+
+    // Footer
+    doc.setFontSize(10);
+    doc.setTextColor(150);
+    doc.text('Merci de votre visite !', 105, finalY + 30, { align: 'center' });
+
+    doc.save(`reçu-${order.receiptNumber}.pdf`);
+  }
+
   confirmPayment(): void {
-    // TODO: Appeler API pour enregistrer le paiement
-    alert('Paiement enregistré!');
-    this.closePaymentModal();
-    this.loadOrders();
+    if (!this.selectedOrder) return;
+
+    // Validation locale
+    const hasInvalid = this.paymentForm.payments.some(p => !p.cashierId || p.amount <= 0);
+    if (hasInvalid) {
+      alert('Veuillez sélectionner une caisse et un montant pour chaque ligne de paiement.');
+      return;
+    }
+
+    const paymentData = {
+      payments: this.paymentForm.payments.map(p => ({
+        cashierId: p.cashierId,
+        amount: Number(p.amount)
+      }))
+    };
+
+    this.http.post(`${environment.apiUrl}/orders/${this.selectedOrder._id}/pay`, paymentData).subscribe({
+      next: () => {
+        alert('Paiement enregistré avec succès !');
+        this.closePaymentModal();
+        this.loadOrders();
+      },
+      error: (error) => {
+        const msg = error.error?.message || 'Erreur serveur lors de l\'enregistrement du paiement';
+        alert(msg);
+        console.error('Pay order error:', error);
+      }
+    });
   }
 
   // Modal Annulation
@@ -807,9 +910,6 @@ export class SalesHistoryComponent implements OnInit {
     this.selectedOrder = null;
   }
 
-  printReceipt(order: Order): void {
-    alert('Impression du reçu ' + order.receiptNumber);
-  }
 
   refreshData(): void {
     this.loadOrders();

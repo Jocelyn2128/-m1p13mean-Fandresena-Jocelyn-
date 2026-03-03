@@ -10,7 +10,7 @@ import { environment } from '../../environments/environment';
 export class StoreService {
   private apiUrl = `${environment.apiUrl}/stores`;
 
-  constructor(private http: HttpClient) {}
+  constructor(private http: HttpClient) { }
 
   getStores(filters?: any): Observable<any> {
     let params = new HttpParams();
@@ -42,5 +42,13 @@ export class StoreService {
 
   rejectStore(storeId: string): Observable<any> {
     return this.http.put(`${this.apiUrl}/${storeId}/reject`, {});
+  }
+
+  getMyStores(): Observable<any> {
+    return this.http.get(`${this.apiUrl}/my/stores`);
+  }
+
+  updateStore(storeId: string, data: Partial<Store>): Observable<any> {
+    return this.http.put(`${this.apiUrl}/${storeId}`, data);
   }
 }
